@@ -1,12 +1,11 @@
+import { USGS_API_URL } from "@/lib/constants";
 import { type EarthquakeCollection, QuakeFeatureCollectionSchema } from "./schema";
 
 /**
- * Framework-free USGS query layer. The ONLY place the USGS URL is constructed.
- * Pure functions + a fetch that returns a typed, Zod-validated result. Imports
- * nothing from React, the store, or MapLibre.
+ * Framework-free USGS query layer. The ONLY place the USGS URL is constructed
+ * (the base comes from `@/lib/constants`). Pure functions + a fetch that returns
+ * a typed, Zod-validated result. Imports nothing from React, the store, or MapLibre.
  */
-
-const USGS_QUERY_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query";
 
 /** Validated filter inputs the query needs. Dates are `YYYY-MM-DD` (form-native). */
 export interface QuakeQuery {
@@ -36,7 +35,7 @@ export function buildQueryUrl(query: QuakeQuery): string {
     endtime: endOfDayUtc(query.endtime),
     minmagnitude: String(query.minmagnitude),
   });
-  return `${USGS_QUERY_URL}?${params.toString()}`;
+  return `${USGS_API_URL}?${params.toString()}`;
 }
 
 /**

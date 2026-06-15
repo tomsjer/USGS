@@ -1,5 +1,12 @@
 import { z } from "zod";
 import { create } from "zustand";
+import {
+  DEFAULT_MIN_MAGNITUDE,
+  DEFAULT_WINDOW_DAYS,
+  MAX_MAGNITUDE,
+  MIN_MAGNITUDE,
+} from "@/lib/constants";
+import { toUtcDateInput } from "@/lib/utils";
 
 /**
  * Filter form domain + its Zod schema (the INPUT boundary). The form validates
@@ -8,12 +15,9 @@ import { create } from "zustand";
  * range, no future dates.
  */
 
-const MIN_MAGNITUDE = -1;
-const MAX_MAGNITUDE = 10;
-
 /** `YYYY-MM-DD` today, in UTC, for the no-future-dates bound. */
 function todayUtc(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toUtcDateInput(new Date());
 }
 
 const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date");
@@ -42,15 +46,15 @@ export const filterSchema = z
 
 export type FilterValues = z.infer<typeof filterSchema>;
 
-/** Default window: the last 30 days, magnitude ≥ 2.5. */
+/** Default window: the last `DEFAULT_WINDOW_DAYS` days, magnitude ≥ `DEFAULT_MIN_MAGNITUDE`. */
 export function defaultFilters(): FilterValues {
   const end = new Date();
   const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - 30);
+  start.setUTCDate(start.getUTCDate() - DEFAULT_WINDOW_DAYS);
   return {
-    starttime: start.toISOString().slice(0, 10),
-    endtime: end.toISOString().slice(0, 10),
-    minmagnitude: 2.5,
+    starttime: toUtcDateInput(start),
+    endtime: toUtcDateInput(end),
+    minmagnitude: DEFAULT_MIN_MAGNITUDE,
   };
 }
 

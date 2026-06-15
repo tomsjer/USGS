@@ -37,10 +37,17 @@ Loading / empty / error states are always visible.
 - Each fetch carries an `AbortController`; submitting a new filter aborts the in-flight one. Latest response wins.
 - Data source is the USGS query API:
   `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=&endtime=&minmagnitude=`
-  (Summary feeds may seed an initial paint, but the form drives the query API.)
+  The base URL is env-overridable (`VITE_USGS_API_URL`) with a default in `src/lib/constants.ts`;
+  `src/lib/usgs` is still the only place that *builds* the query URL. (Summary feeds may seed an
+  initial paint, but the form drives the query API.)
 - All response shapes live in `src/lib/usgs/schema.ts` as Zod schemas; `z.infer` types ARE the
   domain types. Nothing downstream redefines them.
-- Map config (source, circle layer, basemap, paint expressions) lives in one module under `src/map/`.
+- Constants live in `src/lib/constants.ts`; generic helpers in `src/lib/utils.ts`. External
+  URLs/config come from `VITE_*` env vars with a default in `constants.ts` (e.g. `VITE_USGS_API_URL`,
+  `VITE_BASEMAP_STYLE_URL`). `constants.ts` reads only `import.meta.env`, so the framework-free
+  `src/lib/usgs` may import it.
+- The MapLibre circle-layer/paint **spec** lives in one module under `src/map/`; its scalar constants
+  (source/layer ids, basemap URL, default mag, initial view) live in `src/lib/constants.ts`.
 
 ## Filter validation (graded — don't skip)
 - The filter form has its own Zod schema: `starttime <= endtime`, magnitude numeric and in range, no future dates.
@@ -72,6 +79,10 @@ Loading / empty / error states are always visible.
 - Components: PascalCase files, colocated with hooks and tests.
 - Tailwind: responsive-first (mobile default, scale up). No arbitrary values when a token exists.
 - Derive state with Zustand selectors, not `useEffect`.
+- Constants live in `src/lib/constants.ts` — don't scatter magic values inline.
+- Generic helpers live in `src/lib/utils.ts`. Keep it DRY: extract a shared helper before duplicating.
+- External URLs/config go through `VITE_*` env vars (typed in `src/vite-env.d.ts`) with a safe default
+  in `constants.ts`; document each in `.env.example`. `.env` is gitignored.
 
 ## Commands
 - `corepack enable` then `pnpm install` — first-time setup

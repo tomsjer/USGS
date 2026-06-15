@@ -3,6 +3,11 @@ dist
 dist-ssr
 *.local
 
+# Env (local secrets/overrides); keep the documented template
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log

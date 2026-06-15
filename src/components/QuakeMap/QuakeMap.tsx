@@ -5,8 +5,8 @@ import {
   INITIAL_VIEW_STATE,
   QUAKE_LAYER_ID,
   QUAKE_SOURCE_ID,
-  quakeCircleLayer,
-} from "@/map/config";
+} from "@/lib/constants";
+import { quakeCircleLayer } from "@/map/config";
 import { useQuakesStore, useStatusStore } from "@/stores";
 
 /**
