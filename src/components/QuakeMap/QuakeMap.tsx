@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Layer,
   Map as MapGL,
@@ -14,11 +14,39 @@ import {
   QUAKE_LAYER_ID,
   QUAKE_SOURCE_ID,
 } from "@/lib/constants";
+import type { Earthquake } from "@/lib/usgs";
 import { quakeCircleLayer } from "@/map/config";
 import { useQuakesStore, useStatusStore } from "@/stores";
 
 /** Only the quake circles are interactive (hover cursor + click → popup). */
 const INTERACTIVE_LAYERS = [QUAKE_LAYER_ID];
+
+/** Vertical pixel headroom kept above a clicked point so its popup never clips. */
+const POPUP_HEADROOM = 90;
+
+/** How a result set is framed when a new query lands. */
+const FIT_OPTIONS = { padding: 48, maxZoom: 8, duration: 800 } as const;
+
+/** Bounding box `[[w, s], [e, n]]` of the features, or null if empty. */
+function boundsOf(features: Earthquake[]): [[number, number], [number, number]] | null {
+  let west = Infinity;
+  let south = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  for (const f of features) {
+    const [lng, lat] = f.geometry.coordinates;
+    if (lng < west) west = lng;
+    if (lng > east) east = lng;
+    if (lat < south) south = lat;
+    if (lat > north) north = lat;
+  }
+  return Number.isFinite(west)
+    ? [
+        [west, south],
+        [east, north],
+      ]
+    : null;
+}
 
 /** What the popup renders — pulled straight off the clicked GL feature. */
 interface PopupInfo {
@@ -46,12 +74,36 @@ export function QuakeMap() {
   const items = useQuakesStore((s) => s.items);
   const setMap = useStatusStore((s) => s.setMap);
   const dataKind = useStatusStore((s) => s.data.kind);
+  const mapReady = useStatusStore((s) => s.map.kind === "ready");
 
   const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<PopupInfo | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   const data = useMemo(() => ({ type: "FeatureCollection" as const, features: items }), [items]);
+
+  // A new query is in flight → drop any open popup (applying a filter dismisses it).
+  useEffect(() => {
+    if (dataKind === "fetching") setSelected(null);
+  }, [dataKind]);
+
+  // New results landed → frame them. fitBounds shows the whole result set; runs once
+  // the map is ready (so the initial query also gets framed on first load).
+  useEffect(() => {
+    if (!mapReady || items.length === 0) return;
+    const bounds = boundsOf(items);
+    if (bounds) mapRef.current?.fitBounds(bounds, FIT_OPTIONS);
+  }, [items, mapReady]);
+
+  // Esc closes the popup.
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelected(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected]);
 
   // After a source update we sit in `rendering`; MapLibre's first `idle` once the
   // new features have painted promotes us to `ready` with the live count.
@@ -78,8 +130,13 @@ export function QuakeMap() {
       mag: typeof props.mag === "number" ? props.mag : null,
       time: typeof props.time === "number" ? props.time : null,
     });
-    // Center the clicked point so the popup (anchored above it) stays in view.
-    mapRef.current?.flyTo({ center: [longitude, latitude], duration: 600 });
+    // Center the clicked point, biased downward so the popup above it has headroom
+    // and stays in the viewport even for points near the top edge.
+    mapRef.current?.flyTo({
+      center: [longitude, latitude],
+      offset: [0, POPUP_HEADROOM / 2],
+      duration: 600,
+    });
   }, []);
 
   // Dim the existing points while a new query is in flight (stale-while-revalidate).
