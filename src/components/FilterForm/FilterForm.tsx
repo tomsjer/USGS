@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -17,6 +17,8 @@ const DATE_PRESETS = [
   { label: "Last 10 years", years: 10 },
 ] as const;
 
+type DatePreset = (typeof DATE_PRESETS)[number];
+
 interface FilterFormProps {
   /** Called after a valid submit fires a query — e.g. to close the mobile drawer. */
   onSubmitted?: () => void;
@@ -26,6 +28,7 @@ interface FilterFormProps {
 export function FilterForm({ onSubmitted }: FilterFormProps) {
   const ids = useId();
   const applied = useFiltersStore((s) => s.applied);
+  const [activeDatePreset, setActiveDatePreset] = useState<string | null>(null);
 
   const {
     handleSubmit,
@@ -50,12 +53,17 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
     onSubmitted?.();
   });
 
-  const setDateValue = (name: "starttime" | "endtime", value: string) => {
+  const setDateValue = (
+    name: "starttime" | "endtime",
+    value: string,
+    options: { preservePreset?: boolean } = {},
+  ) => {
     setValue(name, value, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
     });
+    if (!options.preservePreset) setActiveDatePreset(null);
   };
 
   const setMagnitudeValue = (name: "minmagnitude" | "maxmagnitude", value: number) => {
@@ -66,7 +74,7 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
     });
   };
 
-  const applyDatePreset = (preset: (typeof DATE_PRESETS)[number]) => {
+  const applyDatePreset = (preset: DatePreset) => {
     const end = new Date();
     const start = new Date(end);
 
@@ -76,8 +84,9 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
       start.setUTCFullYear(start.getUTCFullYear() - preset.years);
     }
 
-    setDateValue("starttime", toUtcDateInput(start));
-    setDateValue("endtime", toUtcDateInput(end));
+    setDateValue("starttime", toUtcDateInput(start), { preservePreset: true });
+    setDateValue("endtime", toUtcDateInput(end), { preservePreset: true });
+    setActiveDatePreset(preset.label);
   };
 
   const updateMagnitudeRange = ([min, max]: number[]) => {
@@ -97,6 +106,9 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
             type="button"
             variant="outline"
             size="xs"
+            aria-pressed={activeDatePreset === preset.label}
+            data-active={activeDatePreset === preset.label || undefined}
+            className="data-[active]:border-primary data-[active]:bg-primary data-[active]:text-primary-foreground data-[active]:shadow-xs"
             onClick={() => applyDatePreset(preset)}
           >
             {preset.label}
