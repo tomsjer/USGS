@@ -80,6 +80,12 @@ Loading / empty / error states are always visible.
 - `pnpm typecheck` — tsc --noEmit
 - Both must pass before any commit.
 
+## Git workflow
+- Upon a successful feature implementation, commit it. "Successful" means the feature works and
+  both gates pass (`pnpm typecheck` + `pnpm check:ci`).
+- Write a proper message: a concise imperative subject (≤ ~72 chars), then a body explaining the
+  what and why when the change is non-trivial. One logical feature per commit.
+
 ## Don't
 - Don't cluster — use a circle layer sized/colored by magnitude.
 - Don't put React / store / MapLibre imports in `src/lib/usgs`.
