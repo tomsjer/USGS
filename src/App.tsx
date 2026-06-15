@@ -1,4 +1,5 @@
 import { Activity } from "lucide-react";
+import { useEffect } from "react";
 import { FilterForm } from "@/components/FilterForm/FilterForm";
 import { QuakeMap } from "@/components/QuakeMap/QuakeMap";
 import { StatusPill } from "@/components/StatusPill/StatusPill";
@@ -13,12 +14,20 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { runQuery, useFiltersStore } from "@/stores";
 
 /**
  * App shell: collapsible sidebar (filters) + full-bleed map with a non-blocking
- * status pill. Components are dumb renderers of store state — no fetching here.
+ * status pill. Components are dumb renderers of store state — no fetching here;
+ * the one lifecycle trigger is the initial query on mount.
  */
 export function App() {
+  // Seed the first paint from the default filters. Submit-driven queries take over
+  // from here; this effect is a one-shot lifecycle trigger, not derived state.
+  useEffect(() => {
+    void runQuery(useFiltersStore.getState().applied);
+  }, []);
+
   return (
     <SidebarProvider>
       <Sidebar>

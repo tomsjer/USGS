@@ -3,7 +3,7 @@ import { useId } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { type FilterValues, filterSchema, useFiltersStore } from "@/stores";
+import { type FilterValues, filterSchema, runQuery, useFiltersStore } from "@/stores";
 
 /**
  * Sidebar filter form. Validates on submit via zodResolver against the filter
@@ -17,7 +17,6 @@ import { type FilterValues, filterSchema, useFiltersStore } from "@/stores";
 export function FilterForm() {
   const ids = useId();
   const applied = useFiltersStore((s) => s.applied);
-  const setApplied = useFiltersStore((s) => s.setApplied);
 
   const {
     register,
@@ -28,8 +27,9 @@ export function FilterForm() {
     defaultValues: applied,
   });
 
+  // Only a valid form reaches here; runQuery records the filters and fetches.
   const onSubmit = handleSubmit((values) => {
-    setApplied(values);
+    void runQuery(values);
   });
 
   return (

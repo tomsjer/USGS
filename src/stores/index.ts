@@ -5,6 +5,7 @@ export {
   useFiltersStore,
 } from "./filters";
 export { useQuakesStore } from "./quakes";
+export { runQuery } from "./runQuery";
 export {
   type DataStatus,
   type MapStatus,
