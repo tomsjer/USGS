@@ -10,7 +10,9 @@ import {
 } from "react-map-gl/maplibre";
 import {
   BASEMAP_STYLE_URL,
+  FIT_OPTIONS,
   INITIAL_VIEW_STATE,
+  POPUP_HEADROOM,
   QUAKE_LAYER_ID,
   QUAKE_SOURCE_ID,
 } from "@/lib/constants";
@@ -20,12 +22,6 @@ import { useQuakesStore, useStatusStore } from "@/stores";
 
 /** Only the quake circles are interactive (hover cursor + click → popup). */
 const INTERACTIVE_LAYERS = [QUAKE_LAYER_ID];
-
-/** Vertical pixel headroom kept above a clicked point so its popup never clips. */
-const POPUP_HEADROOM = 90;
-
-/** How a result set is framed when a new query lands. */
-const FIT_OPTIONS = { padding: 48, maxZoom: 8, duration: 800 } as const;
 
 /** Bounding box `[[w, s], [e, n]]` of the features, or null if empty. */
 function boundsOf(features: Earthquake[]): [[number, number], [number, number]] | null {

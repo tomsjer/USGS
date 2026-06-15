@@ -21,6 +21,10 @@ export const QUAKE_LAYER_ID = "quake-circles";
 export const DEFAULT_MAG = 0;
 /** Initial camera — whole world. */
 export const INITIAL_VIEW_STATE = { longitude: 0, latitude: 20, zoom: 1.4 } as const;
+/** Vertical pixel headroom kept above a clicked point so its popup never clips. */
+export const POPUP_HEADROOM = 90;
+/** How a result set is framed when a new query lands (MapLibre `fitBounds` options). */
+export const FIT_OPTIONS = { padding: 48, maxZoom: 8, duration: 800 } as const;
 
 // Filter bounds + defaults
 export const MIN_MAGNITUDE = -1;
