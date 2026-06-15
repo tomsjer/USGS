@@ -1,4 +1,5 @@
 // Public surface of the framework-free USGS data layer.
+export { parseUsgsErrorBody, toErrorMessage, UsgsRequestError } from "./errors";
 export {
   buildQueryUrl,
   endOfDayUtc,

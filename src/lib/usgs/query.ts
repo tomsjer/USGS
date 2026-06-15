@@ -1,4 +1,5 @@
 import { USGS_API_URL } from "@/lib/constants";
+import { parseUsgsErrorBody, UsgsRequestError } from "./errors";
 import { type EarthquakeCollection, QuakeFeatureCollectionSchema } from "./schema";
 
 /**
@@ -55,7 +56,11 @@ export async function fetchEarthquakes(
     headers: { Accept: "application/json" },
   });
   if (!res.ok) {
-    throw new Error(`USGS request failed: ${res.status} ${res.statusText}`);
+    const body = await res.text().catch(() => "");
+    throw new UsgsRequestError(parseUsgsErrorBody(res.status, res.statusText, body), {
+      status: res.status,
+      raw: body,
+    });
   }
   const json: unknown = await res.json();
   return QuakeFeatureCollectionSchema.parse(json);

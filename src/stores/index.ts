@@ -11,3 +11,4 @@ export {
   type MapStatus,
   useStatusStore,
 } from "./status";
+export { useViewportStore } from "./viewport";

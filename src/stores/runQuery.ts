@@ -1,4 +1,5 @@
-import { fetchEarthquakes } from "@/lib/usgs";
+import { toast } from "sonner";
+import { fetchEarthquakes, toErrorMessage } from "@/lib/usgs";
 import type { FilterValues } from "./filters";
 import { useFiltersStore } from "./filters";
 import { useQuakesStore } from "./quakes";
@@ -38,14 +39,20 @@ export async function runQuery(filters: FilterValues): Promise<void> {
     useStatusStore
       .getState()
       .setData(features.length === 0 ? { kind: "empty" } : { kind: "rendering" });
+
+    // Transient confirmation of the result (the pill carries the persistent state).
+    if (features.length === 0) {
+      toast("No earthquakes match these filters");
+    } else {
+      toast.success(`Found ${features.length.toLocaleString()} earthquakes`);
+    }
   } catch (err) {
     if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
       return; // expected on supersede — keep prior points & status
     }
-    useStatusStore.getState().setData({
-      kind: "error",
-      message: err instanceof Error ? err.message : "Unknown error",
-    });
+    const message = toErrorMessage(err);
+    useStatusStore.getState().setData({ kind: "error", message });
+    toast.error(message);
   } finally {
     if (inFlight === controller) inFlight = null;
   }

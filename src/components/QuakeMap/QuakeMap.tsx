@@ -17,11 +17,22 @@ import {
 } from "@/lib/constants";
 import type { Earthquake } from "@/lib/usgs";
 import { quakeCircleLayer } from "@/map/config";
-import { useQuakesStore, useStatusStore } from "@/stores";
+import { useQuakesStore, useStatusStore, useViewportStore } from "@/stores";
 import { type PopupInfo, QuakePopupContent } from "./QuakePopupContent";
 
 /** Only the quake circles are interactive (hover cursor + click → popup). */
 const INTERACTIVE_LAYERS = [QUAKE_LAYER_ID];
+
+/** How many features fall within the current map bounds. */
+function countWithinBounds(features: Earthquake[], map: MapRef): number {
+  const bounds = map.getBounds();
+  let count = 0;
+  for (const f of features) {
+    const [lng, lat] = f.geometry.coordinates;
+    if (bounds.contains([lng, lat])) count += 1;
+  }
+  return count;
+}
 
 /** Bounding box `[[w, s], [e, n]]` of the features, or null if empty. */
 function boundsOf(features: Earthquake[]): [[number, number], [number, number]] | null {
@@ -92,6 +103,14 @@ export function QuakeMap() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selected]);
 
+  // Recompute how many loaded points are within the current bounds (drives the
+  // `visible / total` count in the status pill).
+  const updateVisible = useCallback(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    useViewportStore.getState().setVisible(countWithinBounds(useQuakesStore.getState().items, map));
+  }, []);
+
   // After a source update we sit in `rendering`; MapLibre's first `idle` once the
   // new features have painted promotes us to `ready` with the live count.
   const onIdle = useCallback(() => {
@@ -99,7 +118,8 @@ export function QuakeMap() {
     if (status.kind === "rendering") {
       setData({ kind: "ready", count: useQuakesStore.getState().items.length });
     }
-  }, []);
+    updateVisible();
+  }, [updateVisible]);
 
   // Click a circle → select + center it; click empty map → close the popup.
   const onClick = useCallback((e: MapLayerMouseEvent) => {
@@ -141,6 +161,7 @@ export function QuakeMap() {
       cursor={cursor}
       onLoad={() => setMap({ kind: "ready" })}
       onIdle={onIdle}
+      onMoveEnd={updateVisible}
       onClick={onClick}
       onMouseEnter={() => setCursor("pointer")}
       onMouseLeave={() => setCursor(undefined)}

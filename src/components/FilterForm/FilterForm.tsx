@@ -17,8 +17,13 @@ const DATE_PRESETS = [
   { label: "Last 10 years", years: 10 },
 ] as const;
 
+interface FilterFormProps {
+  /** Called after a valid submit fires a query — e.g. to close the mobile drawer. */
+  onSubmitted?: () => void;
+}
+
 /** Sidebar filter form. Only valid submitted values trigger a USGS query. */
-export function FilterForm() {
+export function FilterForm({ onSubmitted }: FilterFormProps) {
   const ids = useId();
   const applied = useFiltersStore((s) => s.applied);
 
@@ -42,6 +47,7 @@ export function FilterForm() {
   // Only a valid form reaches here; runQuery records the filters and fetches.
   const onSubmit = handleSubmit((values) => {
     void runQuery(values);
+    onSubmitted?.();
   });
 
   const setDateValue = (name: "starttime" | "endtime", value: string) => {
