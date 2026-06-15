@@ -3,19 +3,19 @@ import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { MAX_MAGNITUDE, MIN_MAGNITUDE } from "@/lib/constants";
+import { AGE_COLORS, MAX_MAGNITUDE, MIN_MAGNITUDE, MS_PER_HOUR } from "@/lib/constants";
 import { formatMagnitude, roundMagnitude, toUtcDateInput } from "@/lib/utils";
 import { type FilterValues, filterSchema, runQuery, useFiltersStore } from "@/stores";
 import { DatePickerInput } from "./DatePickerInput";
 import { Field } from "./Field";
 import { MagnitudeRadiusHint } from "./MagnitudeRadiusHint";
 
-const DATE_PRESETS = [
-  { label: "Last month", months: 1 },
-  { label: "Last 6 months", months: 6 },
-  { label: "Last year", years: 1 },
-  { label: "Last 10 years", years: 10 },
-] as const;
+/**
+ * Date presets mirror the legend's age buckets (`AGE_COLORS`) so the two stay in
+ * lockstep — excluding the open-ended "Older" bucket. Dates are day-granularity,
+ * so "Past hour" resolves to today.
+ */
+const DATE_PRESETS = AGE_COLORS.filter((bucket) => Number.isFinite(bucket.maxHours));
 
 type DatePreset = (typeof DATE_PRESETS)[number];
 
@@ -76,13 +76,7 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
 
   const applyDatePreset = (preset: DatePreset) => {
     const end = new Date();
-    const start = new Date(end);
-
-    if ("months" in preset) {
-      start.setUTCMonth(start.getUTCMonth() - preset.months);
-    } else {
-      start.setUTCFullYear(start.getUTCFullYear() - preset.years);
-    }
+    const start = new Date(end.getTime() - preset.maxHours * MS_PER_HOUR);
 
     setDateValue("starttime", toUtcDateInput(start), { preservePreset: true });
     setDateValue("endtime", toUtcDateInput(end), { preservePreset: true });

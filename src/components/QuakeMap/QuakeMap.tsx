@@ -14,6 +14,7 @@ import {
   BASEMAP_STYLE_URL,
   FIT_OPTIONS,
   INITIAL_VIEW_STATE,
+  MS_PER_HOUR,
   POPUP_HEADROOM,
   QUAKE_LAYER_ID,
   QUAKE_SOURCE_ID,
@@ -107,7 +108,7 @@ export function QuakeMap() {
       type: "FeatureCollection" as const,
       features: items.map((f) => ({
         ...f,
-        properties: { ...f.properties, [AGE_PROP]: (now - f.properties.time) / 3_600_000 },
+        properties: { ...f.properties, [AGE_PROP]: (now - f.properties.time) / MS_PER_HOUR },
       })),
     };
   }, [items]);

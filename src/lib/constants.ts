@@ -44,6 +44,8 @@ export const AGE_COLORS = [
 ] as const;
 /** Feature property (hours since the event) the age color expression reads. */
 export const AGE_PROP = "ageHours";
+/** Milliseconds per hour — used to derive ages and age-bucket date presets. */
+export const MS_PER_HOUR = 3_600_000;
 /** Initial camera — whole world. */
 export const INITIAL_VIEW_STATE = { longitude: 0, latitude: 20, zoom: 1.4 } as const;
 /** Vertical pixel headroom kept above a clicked point so its popup never clips. */
