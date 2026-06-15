@@ -1,4 +1,4 @@
-import type { FilterSpecification, MapGeoJSONFeature } from "maplibre-gl";
+import type { FilterSpecification, MapGeoJSONFeature, Map as MapInstance } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Layer,
@@ -34,6 +34,13 @@ function idFilter(id: string | number | null | undefined): FilterSpecification {
 function featureId(feature: MapGeoJSONFeature | undefined): string | number | null {
   const id = feature?.id;
   return typeof id === "string" || typeof id === "number" ? id : null;
+}
+
+function disableRotation(map: MapInstance): void {
+  map.dragRotate.disable();
+  map.touchPitch.disable();
+  map.touchZoomRotate.disableRotation();
+  map.keyboard.disableRotation();
 }
 
 /** How many features fall within the current map bounds. */
@@ -191,9 +198,15 @@ export function QuakeMap() {
       ref={mapRef}
       initialViewState={INITIAL_VIEW_STATE}
       mapStyle={BASEMAP_STYLE_URL}
+      dragRotate={false}
+      pitchWithRotate={false}
+      touchPitch={false}
       interactiveLayerIds={INTERACTIVE_LAYERS}
       cursor={cursor}
-      onLoad={() => setMap({ kind: "ready" })}
+      onLoad={(event) => {
+        disableRotation(event.target);
+        setMap({ kind: "ready" });
+      }}
       onIdle={onIdle}
       onMoveEnd={updateVisible}
       onClick={onClick}
