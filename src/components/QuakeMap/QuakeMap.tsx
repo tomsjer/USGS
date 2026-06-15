@@ -53,6 +53,12 @@ function highlightInfo(feature: MapGeoJSONFeature | undefined): QuakeHighlight |
   };
 }
 
+function isSameHighlight(a: QuakeHighlight | null, b: QuakeHighlight | null): boolean {
+  if (!a || !b) return false;
+  if (a.id !== null && b.id !== null) return a.id === b.id;
+  return a.longitude === b.longitude && a.latitude === b.latitude;
+}
+
 function disableRotation(map: MapInstance): void {
   map.dragRotate.disable();
   map.touchPitch.disable();
@@ -208,7 +214,7 @@ export function QuakeMap() {
     const id = highlight?.id ?? null;
     setHovered(highlight);
     setHoveredId(id);
-    setCursor(id === null ? undefined : "pointer");
+    setCursor(highlight ? "pointer" : undefined);
   }, []);
 
   // Dim the existing points while a new query is in flight (stale-while-revalidate).
@@ -248,7 +254,7 @@ export function QuakeMap() {
         <Layer {...quakeSelectedLayer} filter={selectedFilter} />
       </Source>
       <ScaleControl position="bottom-left" maxWidth={96} unit="metric" />
-      {hovered && hovered.id !== selected?.id ? (
+      {hovered && !isSameHighlight(hovered, selected) ? (
         <QuakeHighlightMarker highlight={hovered} variant="hover" />
       ) : null}
       {selected ? <QuakeHighlightMarker highlight={selected} variant="selected" /> : null}
