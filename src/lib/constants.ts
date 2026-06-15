@@ -35,7 +35,7 @@ export const MAGNITUDE_RADIUS_STOPS = [
  * step boundaries; `Infinity` marks the open-ended "Older" bucket (legend only).
  */
 export const AGE_COLORS = [
-  { label: "Past hour", maxHours: 1, color: "#d73027" }, // red
+  { label: "Today", maxHours: 1, color: "#d73027" }, // red
   { label: "Past day", maxHours: 24, color: "#fc8d59" }, // orange
   { label: "Past week", maxHours: 168, color: "#fee090" }, // yellow
   { label: "Past month", maxHours: 720, color: "#91cf60" }, // green
