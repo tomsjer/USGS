@@ -10,6 +10,7 @@ import {
   Source,
 } from "react-map-gl/maplibre";
 import {
+  AGE_PROP,
   BASEMAP_STYLE_URL,
   FIT_OPTIONS,
   INITIAL_VIEW_STATE,
@@ -91,7 +92,18 @@ export function QuakeMap() {
   const [hoveredId, setHoveredId] = useState<string | number | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
-  const data = useMemo(() => ({ type: "FeatureCollection" as const, features: items }), [items]);
+  // Inject `ageHours` (relative to load time) so the circle-color step expression
+  // can read it — MapLibre paint can't compute "now" itself. Recomputed per result set.
+  const data = useMemo(() => {
+    const now = Date.now();
+    return {
+      type: "FeatureCollection" as const,
+      features: items.map((f) => ({
+        ...f,
+        properties: { ...f.properties, [AGE_PROP]: (now - f.properties.time) / 3_600_000 },
+      })),
+    };
+  }, [items]);
   const hoverFilter = useMemo(() => idFilter(hoveredId), [hoveredId]);
   const selectedFilter = useMemo(() => idFilter(selected?.id), [selected?.id]);
 

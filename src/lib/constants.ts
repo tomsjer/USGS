@@ -28,6 +28,22 @@ export const MAGNITUDE_RADIUS_STOPS = [
   [6, 16],
   [8, 26],
 ] as const;
+/**
+ * Circle color encodes event age (radius already encodes magnitude). Warm =
+ * recent → cool = old. Single source of truth for both the map's `step` color
+ * expression and the legend. `maxHours` of every bucket but the last are the
+ * step boundaries; `Infinity` marks the open-ended "Older" bucket (legend only).
+ */
+export const AGE_COLORS = [
+  { label: "Past hour", maxHours: 1, color: "#d73027" }, // red
+  { label: "Past day", maxHours: 24, color: "#fc8d59" }, // orange
+  { label: "Past week", maxHours: 168, color: "#fee090" }, // yellow
+  { label: "Past month", maxHours: 720, color: "#91cf60" }, // green
+  { label: "Past year", maxHours: 8760, color: "#4393c3" }, // blue
+  { label: "Older", maxHours: Number.POSITIVE_INFINITY, color: "#5e4fa2" }, // purple
+] as const;
+/** Feature property (hours since the event) the age color expression reads. */
+export const AGE_PROP = "ageHours";
 /** Initial camera — whole world. */
 export const INITIAL_VIEW_STATE = { longitude: 0, latitude: 20, zoom: 1.4 } as const;
 /** Vertical pixel headroom kept above a clicked point so its popup never clips. */

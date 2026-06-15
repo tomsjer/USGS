@@ -2,6 +2,7 @@ import { Activity } from "lucide-react";
 import { useEffect } from "react";
 import { FilterDrawer } from "@/components/FilterDrawer/FilterDrawer";
 import { FilterForm } from "@/components/FilterForm/FilterForm";
+import { Legend } from "@/components/Legend/Legend";
 import { QuakeMap } from "@/components/QuakeMap/QuakeMap";
 import { StatusPill } from "@/components/StatusPill/StatusPill";
 import {
@@ -20,8 +21,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { runQuery, useFiltersStore } from "@/stores";
 
 /**
- * App shell: filters live in a right-hand sidebar on desktop and a bottom drawer
- * on mobile, alongside a full-bleed map with a non-blocking status pill. The map
+ * App shell: filters live in a sidebar on desktop and a bottom drawer on mobile,
+ * alongside a full-bleed map with a non-blocking status pill and age legend. The map
  * stays mounted across the breakpoint — only the filter container swaps. Toasts
  * confirm each query result. Components are dumb renderers of store state — no
  * fetching here; the one lifecycle trigger is the initial query on mount.
@@ -64,6 +65,7 @@ export function App() {
         <main className="relative flex-1">
           <QuakeMap />
           <StatusPill />
+          <Legend />
           {isMobile && <FilterDrawer />}
         </main>
       </SidebarInset>

@@ -1,5 +1,7 @@
 import type { CircleLayerSpecification, ExpressionSpecification } from "maplibre-gl";
 import {
+  AGE_COLORS,
+  AGE_PROP,
   DEFAULT_MAG,
   MAGNITUDE_RADIUS_STOPS,
   QUAKE_HOVER_LAYER_ID,
@@ -16,12 +18,32 @@ import {
  */
 
 /**
- * Circle radius and color interpolate on `mag`. `mag` is nullable in USGS data,
- * so we coalesce a default via `["coalesce", ["get", "mag"], DEFAULT_MAG]`.
+ * Circle radius interpolates on `mag` (nullable in USGS data, so we coalesce a
+ * default via `["coalesce", ["get", "mag"], DEFAULT_MAG]`). Color is independent:
+ * it encodes event age, not magnitude (see `circleColor`).
  */
 const magExpr: ExpressionSpecification = ["coalesce", ["get", "mag"], DEFAULT_MAG];
 const radiusStops = MAGNITUDE_RADIUS_STOPS.flat();
 const circleRadius: ExpressionSpecification = ["interpolate", ["linear"], magExpr, ...radiusStops];
+
+/**
+ * Color by age bucket: a `step` over the injected `ageHours` property, built from
+ * `AGE_COLORS` so the map and legend never drift. The first color applies below
+ * the first boundary; each subsequent boundary is the previous bucket's `maxHours`
+ * (the open-ended "Older" bucket's `Infinity` is never a boundary).
+ */
+const ageColorStops: (number | string)[] = [];
+for (let i = 1; i < AGE_COLORS.length; i++) {
+  const prev = AGE_COLORS[i - 1];
+  const bucket = AGE_COLORS[i];
+  if (prev && bucket) ageColorStops.push(prev.maxHours, bucket.color);
+}
+const circleColor: ExpressionSpecification = [
+  "step",
+  ["get", AGE_PROP],
+  AGE_COLORS[0].color,
+  ...ageColorStops,
+] as ExpressionSpecification;
 
 export const quakeCircleLayer: CircleLayerSpecification = {
   id: QUAKE_LAYER_ID,
@@ -29,21 +51,7 @@ export const quakeCircleLayer: CircleLayerSpecification = {
   source: QUAKE_SOURCE_ID,
   paint: {
     "circle-radius": circleRadius,
-    "circle-color": [
-      "interpolate",
-      ["linear"],
-      magExpr,
-      0,
-      "#2c7fb8",
-      2.5,
-      "#41b6c4",
-      4.5,
-      "#fecc5c",
-      6,
-      "#fd8d3c",
-      7.5,
-      "#e31a1c",
-    ],
+    "circle-color": circleColor,
     "circle-opacity": 0.8,
     "circle-stroke-width": 1,
     "circle-stroke-color": "#ffffff",
