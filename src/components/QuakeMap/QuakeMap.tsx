@@ -22,11 +22,15 @@ import {
 import type { Earthquake } from "@/lib/usgs";
 import { quakeCircleLayer, quakeHoverLayer, quakeSelectedLayer } from "@/map/config";
 import { useQuakesStore, useStatusStore, useViewportStore } from "@/stores";
+import { type QuakeHighlight, QuakeHighlightMarker } from "./QuakeHighlightMarker";
 import { type PopupInfo, QuakePopupContent } from "./QuakePopupContent";
 
 /** Only the quake circles are interactive (hover cursor + click → popup). */
 const INTERACTIVE_LAYERS = [QUAKE_LAYER_ID];
 const EMPTY_FEATURE_FILTER: FilterSpecification = ["==", ["id"], ""];
+const MIN_CLICK_ZOOM = 5.5;
+const MAX_CLICK_ZOOM = 8;
+const CLICK_ZOOM_DELTA = 1.5;
 
 function idFilter(id: string | number | null | undefined): FilterSpecification {
   return id === null || id === undefined ? EMPTY_FEATURE_FILTER : ["==", ["id"], id];
@@ -35,6 +39,18 @@ function idFilter(id: string | number | null | undefined): FilterSpecification {
 function featureId(feature: MapGeoJSONFeature | undefined): string | number | null {
   const id = feature?.id;
   return typeof id === "string" || typeof id === "number" ? id : null;
+}
+
+function highlightInfo(feature: MapGeoJSONFeature | undefined): QuakeHighlight | null {
+  if (feature?.geometry.type !== "Point") return null;
+  const [longitude, latitude] = feature.geometry.coordinates as [number, number];
+  const props = feature.properties ?? {};
+  return {
+    id: featureId(feature),
+    longitude,
+    latitude,
+    mag: typeof props.mag === "number" ? props.mag : null,
+  };
 }
 
 function disableRotation(map: MapInstance): void {
@@ -97,6 +113,7 @@ export function QuakeMap() {
 
   const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<PopupInfo | null>(null);
+  const [hovered, setHovered] = useState<QuakeHighlight | null>(null);
   const [hoveredId, setHoveredId] = useState<string | number | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
@@ -173,17 +190,23 @@ export function QuakeMap() {
       mag: typeof props.mag === "number" ? props.mag : null,
       time: typeof props.time === "number" ? props.time : null,
     });
-    // Center the clicked point, biased downward so the popup above it has headroom
-    // and stays in the viewport even for points near the top edge.
-    mapRef.current?.flyTo({
+    const map = mapRef.current;
+    const zoom = map
+      ? Math.min(Math.max(map.getZoom() + CLICK_ZOOM_DELTA, MIN_CLICK_ZOOM), MAX_CLICK_ZOOM)
+      : MIN_CLICK_ZOOM;
+    // Center and zoom the clicked point so nearby overlaps become easier to separate.
+    map?.flyTo({
       center: [longitude, latitude],
+      zoom,
       offset: [0, POPUP_HEADROOM / 2],
       duration: 600,
     });
   }, []);
 
   const onMouseMove = useCallback((e: MapLayerMouseEvent) => {
-    const id = featureId(e.features?.[0]);
+    const highlight = highlightInfo(e.features?.[0]);
+    const id = highlight?.id ?? null;
+    setHovered(highlight);
     setHoveredId(id);
     setCursor(id === null ? undefined : "pointer");
   }, []);
@@ -213,6 +236,7 @@ export function QuakeMap() {
       onClick={onClick}
       onMouseMove={onMouseMove}
       onMouseLeave={() => {
+        setHovered(null);
         setHoveredId(null);
         setCursor(undefined);
       }}
@@ -224,6 +248,10 @@ export function QuakeMap() {
         <Layer {...quakeSelectedLayer} filter={selectedFilter} />
       </Source>
       <ScaleControl position="bottom-left" maxWidth={96} unit="metric" />
+      {hovered && hovered.id !== selected?.id ? (
+        <QuakeHighlightMarker highlight={hovered} variant="hover" />
+      ) : null}
+      {selected ? <QuakeHighlightMarker highlight={selected} variant="selected" /> : null}
 
       {selected ? (
         <Popup
