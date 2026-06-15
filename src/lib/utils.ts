@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { MAGNITUDE_RADIUS_STOPS } from "@/lib/constants";
 
 /** Merge Tailwind class names, resolving conflicts. */
 export function cn(...inputs: ClassValue[]) {
@@ -39,4 +40,24 @@ export function roundMagnitude(value: number): number {
 
 export function formatMagnitude(value: number): string {
   return value.toFixed(1);
+}
+
+export function magnitudeCircleRadius(magnitude: number): number {
+  let previous: readonly [number, number] = MAGNITUDE_RADIUS_STOPS[0];
+
+  if (magnitude <= previous[0]) return previous[1];
+
+  for (const current of MAGNITUDE_RADIUS_STOPS.slice(1)) {
+    const [previousMagnitude, previousRadius] = previous;
+    const [currentMagnitude, currentRadius] = current;
+
+    if (magnitude <= currentMagnitude) {
+      const progress = (magnitude - previousMagnitude) / (currentMagnitude - previousMagnitude);
+      return previousRadius + progress * (currentRadius - previousRadius);
+    }
+
+    previous = current;
+  }
+
+  return previous[1];
 }

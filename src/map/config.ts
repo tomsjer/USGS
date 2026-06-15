@@ -1,5 +1,10 @@
 import type { CircleLayerSpecification, ExpressionSpecification } from "maplibre-gl";
-import { DEFAULT_MAG, QUAKE_LAYER_ID, QUAKE_SOURCE_ID } from "@/lib/constants";
+import {
+  DEFAULT_MAG,
+  MAGNITUDE_RADIUS_STOPS,
+  QUAKE_LAYER_ID,
+  QUAKE_SOURCE_ID,
+} from "@/lib/constants";
 
 /**
  * The MapLibre circle-layer spec (paint expressions). Scalar constants (basemap
@@ -13,13 +18,14 @@ import { DEFAULT_MAG, QUAKE_LAYER_ID, QUAKE_SOURCE_ID } from "@/lib/constants";
  * so we coalesce a default via `["coalesce", ["get", "mag"], DEFAULT_MAG]`.
  */
 const magExpr: ExpressionSpecification = ["coalesce", ["get", "mag"], DEFAULT_MAG];
+const radiusStops = MAGNITUDE_RADIUS_STOPS.flat();
 
 export const quakeCircleLayer: CircleLayerSpecification = {
   id: QUAKE_LAYER_ID,
   type: "circle",
   source: QUAKE_SOURCE_ID,
   paint: {
-    "circle-radius": ["interpolate", ["linear"], magExpr, 0, 3, 2, 5, 4, 9, 6, 16, 8, 26],
+    "circle-radius": ["interpolate", ["linear"], magExpr, ...radiusStops],
     "circle-color": [
       "interpolate",
       ["linear"],

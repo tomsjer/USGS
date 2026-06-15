@@ -8,6 +8,7 @@ import { formatMagnitude, roundMagnitude, toUtcDateInput } from "@/lib/utils";
 import { type FilterValues, filterSchema, runQuery, useFiltersStore } from "@/stores";
 import { DatePickerInput } from "./DatePickerInput";
 import { Field } from "./Field";
+import { MagnitudeRadiusHint } from "./MagnitudeRadiusHint";
 
 const DATE_PRESETS = [
   { label: "Last month", months: 1 },
@@ -137,6 +138,7 @@ export function FilterForm() {
           <span>{formatMagnitude(MIN_MAGNITUDE)}</span>
           <span>{formatMagnitude(MAX_MAGNITUDE)}</span>
         </div>
+        <MagnitudeRadiusHint min={minmagnitude} max={maxmagnitude} />
       </Field>
       <Button type="submit">Apply filters</Button>
     </form>

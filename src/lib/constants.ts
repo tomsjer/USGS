@@ -19,6 +19,13 @@ export const QUAKE_SOURCE_ID = "quakes";
 export const QUAKE_LAYER_ID = "quake-circles";
 /** Fallback for the nullable `mag` field so paint expressions never see null. */
 export const DEFAULT_MAG = 0;
+export const MAGNITUDE_RADIUS_STOPS = [
+  [0, 3],
+  [2, 5],
+  [4, 9],
+  [6, 16],
+  [8, 26],
+] as const;
 /** Initial camera — whole world. */
 export const INITIAL_VIEW_STATE = { longitude: 0, latitude: 20, zoom: 1.4 } as const;
 /** Vertical pixel headroom kept above a clicked point so its popup never clips. */
