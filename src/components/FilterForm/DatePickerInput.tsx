@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { fromDateInput, toDateInput } from "@/lib/utils";
+import { fromDateInput, toUtcDateInput } from "@/lib/utils";
 
 interface DatePickerInputProps {
   id: string;
@@ -44,12 +44,13 @@ export function DatePickerInput({ id, value, invalid, onChange }: DatePickerInpu
         <PopoverContent className="w-auto p-0" align="end">
           <Calendar
             mode="single"
+            timeZone="UTC"
             selected={selected}
             disabled={{ after: new Date() }}
             captionLayout="dropdown"
             onSelect={(date) => {
               if (!date) return;
-              onChange(toDateInput(date));
+              onChange(toUtcDateInput(date));
               setOpen(false);
             }}
           />

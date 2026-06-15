@@ -11,29 +11,26 @@ export function toUtcDateInput(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Parse a `YYYY-MM-DD` date-only value into a local Date for calendar widgets. */
+/**
+ * Parse a `YYYY-MM-DD` date-only value into a UTC-midnight Date for calendar
+ * widgets. The numerals are interpreted as a UTC calendar day so they round-trip
+ * losslessly with {@link toUtcDateInput}; pair with `timeZone="UTC"` on the
+ * calendar so the rendered grid matches.
+ */
 export function fromDateInput(value: string): Date | undefined {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return undefined;
 
   const [, year, month, day] = match;
-  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
   if (
-    date.getFullYear() !== Number(year) ||
-    date.getMonth() !== Number(month) - 1 ||
-    date.getDate() !== Number(day)
+    date.getUTCFullYear() !== Number(year) ||
+    date.getUTCMonth() !== Number(month) - 1 ||
+    date.getUTCDate() !== Number(day)
   ) {
     return undefined;
   }
   return date;
-}
-
-/** Format a calendar Date as the date-only value stored by the filter form. */
-export function toDateInput(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }
 
 export function roundMagnitude(value: number): number {
