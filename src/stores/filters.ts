@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { create } from "zustand";
 import {
+  DEFAULT_MAX_MAGNITUDE,
   DEFAULT_MIN_MAGNITUDE,
   DEFAULT_WINDOW_DAYS,
   MAX_MAGNITUDE,
@@ -30,6 +31,10 @@ export const filterSchema = z
       .number({ message: "Magnitude must be a number" })
       .min(MIN_MAGNITUDE, `Magnitude ≥ ${MIN_MAGNITUDE}`)
       .max(MAX_MAGNITUDE, `Magnitude ≤ ${MAX_MAGNITUDE}`),
+    maxmagnitude: z
+      .number({ message: "Magnitude must be a number" })
+      .min(MIN_MAGNITUDE, `Magnitude ≥ ${MIN_MAGNITUDE}`)
+      .max(MAX_MAGNITUDE, `Magnitude ≤ ${MAX_MAGNITUDE}`),
   })
   .refine((f) => f.starttime <= f.endtime, {
     path: ["endtime"],
@@ -42,6 +47,10 @@ export const filterSchema = z
   .refine((f) => f.starttime <= todayUtc(), {
     path: ["starttime"],
     message: "Start date can't be in the future",
+  })
+  .refine((f) => f.minmagnitude <= f.maxmagnitude, {
+    path: ["maxmagnitude"],
+    message: "Maximum magnitude must be at least the minimum",
   });
 
 export type FilterValues = z.infer<typeof filterSchema>;
@@ -55,6 +64,7 @@ export function defaultFilters(): FilterValues {
     starttime: toUtcDateInput(start),
     endtime: toUtcDateInput(end),
     minmagnitude: DEFAULT_MIN_MAGNITUDE,
+    maxmagnitude: DEFAULT_MAX_MAGNITUDE,
   };
 }
 

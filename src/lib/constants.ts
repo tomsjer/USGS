@@ -30,4 +30,5 @@ export const FIT_OPTIONS = { padding: 48, maxZoom: 8, duration: 800 } as const;
 export const MIN_MAGNITUDE = -1;
 export const MAX_MAGNITUDE = 10;
 export const DEFAULT_MIN_MAGNITUDE = 2.5;
+export const DEFAULT_MAX_MAGNITUDE = MAX_MAGNITUDE;
 export const DEFAULT_WINDOW_DAYS = 30;

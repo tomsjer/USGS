@@ -76,11 +76,14 @@ Loading / empty / error states are always visible.
 
 ## Conventions
 - Unknown shape → model it with Zod, never `any`.
-- Components: PascalCase files, colocated with hooks and tests.
+- Components: PascalCase files, colocated with hooks and tests. Standalone components each live
+  in their own file (for example `FilterForm.tsx`, `DatePickerInput.tsx`, `Field.tsx`) to keep code
+  organized and reusable.
 - Tailwind: responsive-first (mobile default, scale up). No arbitrary values when a token exists.
 - Derive state with Zustand selectors, not `useEffect`.
 - Constants live in `src/lib/constants.ts` — don't scatter magic values inline.
-- Generic helpers live in `src/lib/utils.ts`. Keep it DRY: extract a shared helper before duplicating.
+- Generic helpers live in `src/lib/utils.ts` (for example `formatMagnitude`). Keep it DRY: extract
+  a shared helper before duplicating.
 - External URLs/config go through `VITE_*` env vars (typed in `src/vite-env.d.ts`) with a safe default
   in `constants.ts`; document each in `.env.example`. `.env` is gitignored.
 

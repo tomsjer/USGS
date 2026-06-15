@@ -10,4 +10,5 @@ services:
       - /app/node_modules  # anonymous volume: keep container deps, don't shadow with host
     environment:
       - CHOKIDAR_USEPOLLING=true   # reliable file-watching on macOS/Windows mounts
-    command: pnpm dev --host
+      - CI=true                    # let pnpm reconcile the anonymous node_modules volume non-interactively
+    command: sh -c "pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"

@@ -12,6 +12,7 @@ export interface QuakeQuery {
   starttime: string;
   endtime: string;
   minmagnitude: number;
+  maxmagnitude: number;
 }
 
 /**
@@ -34,6 +35,7 @@ export function buildQueryUrl(query: QuakeQuery): string {
     starttime: startOfDayUtc(query.starttime),
     endtime: endOfDayUtc(query.endtime),
     minmagnitude: String(query.minmagnitude),
+    maxmagnitude: String(query.maxmagnitude),
   });
   return `${USGS_API_URL}?${params.toString()}`;
 }

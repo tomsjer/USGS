@@ -60,5 +60,7 @@ export function toErrorMessage(err: unknown): string {
   if (err instanceof TypeError) {
     return "Couldn't reach the USGS service. Check your connection and try again.";
   }
-  return err instanceof Error && err.message ? err.message : "Something went wrong. Please try again.";
+  return err instanceof Error && err.message
+    ? err.message
+    : "Something went wrong. Please try again.";
 }

@@ -2,6 +2,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.pnpm-store
 
 # Env (local secrets/overrides); keep the documented template
 .env
