@@ -2,7 +2,9 @@ import type { CircleLayerSpecification, ExpressionSpecification } from "maplibre
 import {
   DEFAULT_MAG,
   MAGNITUDE_RADIUS_STOPS,
+  QUAKE_HOVER_LAYER_ID,
   QUAKE_LAYER_ID,
+  QUAKE_SELECTED_LAYER_ID,
   QUAKE_SOURCE_ID,
 } from "@/lib/constants";
 
@@ -19,13 +21,14 @@ import {
  */
 const magExpr: ExpressionSpecification = ["coalesce", ["get", "mag"], DEFAULT_MAG];
 const radiusStops = MAGNITUDE_RADIUS_STOPS.flat();
+const circleRadius: ExpressionSpecification = ["interpolate", ["linear"], magExpr, ...radiusStops];
 
 export const quakeCircleLayer: CircleLayerSpecification = {
   id: QUAKE_LAYER_ID,
   type: "circle",
   source: QUAKE_SOURCE_ID,
   paint: {
-    "circle-radius": ["interpolate", ["linear"], magExpr, ...radiusStops],
+    "circle-radius": circleRadius,
     "circle-color": [
       "interpolate",
       ["linear"],
@@ -45,5 +48,31 @@ export const quakeCircleLayer: CircleLayerSpecification = {
     "circle-stroke-width": 1,
     "circle-stroke-color": "#ffffff",
     "circle-stroke-opacity": 0.6,
+  },
+};
+
+export const quakeHoverLayer: CircleLayerSpecification = {
+  id: QUAKE_HOVER_LAYER_ID,
+  type: "circle",
+  source: QUAKE_SOURCE_ID,
+  paint: {
+    "circle-radius": ["+", circleRadius, 2],
+    "circle-color": "rgba(255,255,255,0.08)",
+    "circle-stroke-width": 2,
+    "circle-stroke-color": "#111827",
+    "circle-stroke-opacity": 0.5,
+  },
+};
+
+export const quakeSelectedLayer: CircleLayerSpecification = {
+  id: QUAKE_SELECTED_LAYER_ID,
+  type: "circle",
+  source: QUAKE_SOURCE_ID,
+  paint: {
+    "circle-radius": ["+", circleRadius, 4],
+    "circle-color": "rgba(255,255,255,0.14)",
+    "circle-stroke-width": 2.5,
+    "circle-stroke-color": "#111827",
+    "circle-stroke-opacity": 0.8,
   },
 };

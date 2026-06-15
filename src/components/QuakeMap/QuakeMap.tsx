@@ -1,3 +1,4 @@
+import type { FilterSpecification, MapGeoJSONFeature } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Layer,
@@ -5,6 +6,7 @@ import {
   type MapLayerMouseEvent,
   type MapRef,
   Popup,
+  ScaleControl,
   Source,
 } from "react-map-gl/maplibre";
 import {
@@ -16,12 +18,22 @@ import {
   QUAKE_SOURCE_ID,
 } from "@/lib/constants";
 import type { Earthquake } from "@/lib/usgs";
-import { quakeCircleLayer } from "@/map/config";
+import { quakeCircleLayer, quakeHoverLayer, quakeSelectedLayer } from "@/map/config";
 import { useQuakesStore, useStatusStore, useViewportStore } from "@/stores";
 import { type PopupInfo, QuakePopupContent } from "./QuakePopupContent";
 
 /** Only the quake circles are interactive (hover cursor + click → popup). */
 const INTERACTIVE_LAYERS = [QUAKE_LAYER_ID];
+const EMPTY_FEATURE_FILTER: FilterSpecification = ["==", ["id"], ""];
+
+function idFilter(id: string | number | null | undefined): FilterSpecification {
+  return id === null || id === undefined ? EMPTY_FEATURE_FILTER : ["==", ["id"], id];
+}
+
+function featureId(feature: MapGeoJSONFeature | undefined): string | number | null {
+  const id = feature?.id;
+  return typeof id === "string" || typeof id === "number" ? id : null;
+}
 
 /** How many features fall within the current map bounds. */
 function countWithinBounds(features: Earthquake[], map: MapRef): number {
@@ -76,9 +88,12 @@ export function QuakeMap() {
 
   const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<PopupInfo | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | number | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
 
   const data = useMemo(() => ({ type: "FeatureCollection" as const, features: items }), [items]);
+  const hoverFilter = useMemo(() => idFilter(hoveredId), [hoveredId]);
+  const selectedFilter = useMemo(() => idFilter(selected?.id), [selected?.id]);
 
   // A new query is in flight → drop any open popup (applying a filter dismisses it).
   useEffect(() => {
@@ -131,6 +146,7 @@ export function QuakeMap() {
     const [longitude, latitude] = feature.geometry.coordinates as [number, number];
     const props = feature.properties ?? {};
     setSelected({
+      id: featureId(feature),
       longitude,
       latitude,
       place: typeof props.place === "string" ? props.place : null,
@@ -144,6 +160,12 @@ export function QuakeMap() {
       offset: [0, POPUP_HEADROOM / 2],
       duration: 600,
     });
+  }, []);
+
+  const onMouseMove = useCallback((e: MapLayerMouseEvent) => {
+    const id = featureId(e.features?.[0]);
+    setHoveredId(id);
+    setCursor(id === null ? undefined : "pointer");
   }, []);
 
   // Dim the existing points while a new query is in flight (stale-while-revalidate).
@@ -163,13 +185,19 @@ export function QuakeMap() {
       onIdle={onIdle}
       onMoveEnd={updateVisible}
       onClick={onClick}
-      onMouseEnter={() => setCursor("pointer")}
-      onMouseLeave={() => setCursor(undefined)}
+      onMouseMove={onMouseMove}
+      onMouseLeave={() => {
+        setHoveredId(null);
+        setCursor(undefined);
+      }}
       style={{ width: "100%", height: "100%" }}
     >
       <Source id={QUAKE_SOURCE_ID} type="geojson" data={data}>
         <Layer id={QUAKE_LAYER_ID} type="circle" source={QUAKE_SOURCE_ID} paint={paint} />
+        <Layer {...quakeHoverLayer} filter={hoverFilter} />
+        <Layer {...quakeSelectedLayer} filter={selectedFilter} />
       </Source>
+      <ScaleControl position="bottom-left" maxWidth={96} unit="metric" />
 
       {selected ? (
         <Popup
@@ -179,7 +207,7 @@ export function QuakeMap() {
           offset={18}
           closeButton={false}
           closeOnClick={false}
-          maxWidth="280px"
+          maxWidth="240px"
           onClose={() => setSelected(null)}
         >
           <QuakePopupContent info={selected} onClose={() => setSelected(null)} />

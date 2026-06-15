@@ -103,3 +103,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .maplibregl-ctrl-bottom-left .maplibregl-ctrl {
+    @apply mb-4 ml-4;
+  }
+
+  .maplibregl-ctrl-scale {
+    @apply border-border bg-card/90 px-2 py-1 text-xs font-medium text-card-foreground shadow-sm backdrop-blur;
+    border-top: 0;
+  }
+
+  .maplibregl-popup-content {
+    @apply rounded-md border border-border bg-card/95 p-3 text-card-foreground shadow-lg backdrop-blur;
+  }
+
+  .maplibregl-popup-tip {
+    display: none;
+  }
+}

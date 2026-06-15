@@ -21,20 +21,25 @@ export function StatusPill() {
   const visible = useViewportStore((s) => s.visible);
 
   const isError = data.kind === "error";
-  const message = isError ? data.message : undefined;
+  const title =
+    isError || total === 0
+      ? data.kind === "error"
+        ? data.message
+        : undefined
+      : `${visible.toLocaleString()} visible of ${plural(total)}`;
 
   let content: React.ReactNode;
   if (data.kind === "fetching") {
-    content = "Loading earthquakes…";
+    content = "Loading...";
   } else if (data.kind === "rendering") {
-    content = "Rendering…";
+    content = "Rendering...";
   } else if (data.kind === "empty") {
-    content = "No earthquakes match these filters";
+    content = "No matches";
   } else if (isError) {
     content = (
       <>
         <AlertTriangle className="size-4 shrink-0" aria-hidden />
-        Couldn't load earthquakes
+        Load failed
       </>
     );
   } else if (total > 0) {
@@ -43,10 +48,10 @@ export function StatusPill() {
       visible < total ? (
         <>
           <Eye className="size-4 shrink-0" aria-hidden />
-          {visible.toLocaleString()} / {plural(total)}
+          {visible.toLocaleString()} / {total.toLocaleString()}
         </>
       ) : (
-        plural(total)
+        total.toLocaleString()
       );
   } else {
     content = "Ready";
@@ -55,9 +60,9 @@ export function StatusPill() {
   return (
     <output
       aria-live="polite"
-      title={message}
+      title={title}
       data-error={isError || undefined}
-      className="pointer-events-none absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/90 px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm backdrop-blur data-[error]:border-destructive/40 data-[error]:text-destructive"
+      className="pointer-events-none absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/90 px-2.5 py-1 text-xs font-medium text-card-foreground shadow-sm backdrop-blur data-[error]:border-destructive/40 data-[error]:text-destructive"
     >
       {content}
     </output>
