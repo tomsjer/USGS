@@ -15,7 +15,10 @@ interface DatePickerInputProps {
 
 export function DatePickerInput({ id, value, invalid, onChange }: DatePickerInputProps) {
   const [open, setOpen] = useState(false);
-  const selected = fromDateInput(value);
+  // A preset may pass a full ISO instant (e.g. "Past hour"); show just the date.
+  // Editing the field or picking a day emits a bare `YYYY-MM-DD` (day granularity).
+  const dateValue = value.slice(0, 10);
+  const selected = fromDateInput(dateValue);
 
   return (
     <div className="flex gap-2">
@@ -25,7 +28,7 @@ export function DatePickerInput({ id, value, invalid, onChange }: DatePickerInpu
         inputMode="numeric"
         pattern="\\d{4}-\\d{2}-\\d{2}"
         placeholder="YYYY-MM-DD"
-        value={value}
+        value={dateValue}
         aria-invalid={invalid}
         onChange={(event) => onChange(event.target.value)}
       />

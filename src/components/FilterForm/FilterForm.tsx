@@ -78,8 +78,15 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
     const end = new Date();
     const start = new Date(end.getTime() - preset.maxHours * MS_PER_HOUR);
 
-    setDateValue("starttime", toUtcDateInput(start), { preservePreset: true });
-    setDateValue("endtime", toUtcDateInput(end), { preservePreset: true });
+    // Sub-day windows (e.g. "Past hour") query the exact instants so the API
+    // filters by hour, not the whole day; day+ windows stay day-granular.
+    const subDay = preset.maxHours < 24;
+    setDateValue("starttime", subDay ? start.toISOString() : toUtcDateInput(start), {
+      preservePreset: true,
+    });
+    setDateValue("endtime", subDay ? end.toISOString() : toUtcDateInput(end), {
+      preservePreset: true,
+    });
     setActiveDatePreset(preset.label);
   };
 

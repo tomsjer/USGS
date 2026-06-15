@@ -16,18 +16,24 @@ export interface QuakeQuery {
   maxmagnitude: number;
 }
 
-/**
- * USGS treats `endtime=YYYY-MM-DD` as midnight UTC, which silently drops events
- * occurring later that day. Push the end date to the final millisecond of the
- * day in UTC so the whole day is included.
- */
-export function endOfDayUtc(date: string): string {
-  return `${date}T23:59:59.999Z`;
+/** A value already carrying a time component is a full ISO instant; pass it through. */
+function hasTime(value: string): boolean {
+  return value.includes("T");
 }
 
-/** Start dates normalize to the first instant of the day in UTC. */
+/**
+ * USGS treats `endtime=YYYY-MM-DD` as midnight UTC, which silently drops events
+ * occurring later that day. Push a bare end date to the final millisecond of the
+ * day in UTC so the whole day is included. A full ISO instant (e.g. a "past hour"
+ * preset) is used verbatim — the API honors sub-day precision.
+ */
+export function endOfDayUtc(date: string): string {
+  return hasTime(date) ? date : `${date}T23:59:59.999Z`;
+}
+
+/** Bare start dates normalize to the first instant of the day in UTC; ISO passes through. */
 export function startOfDayUtc(date: string): string {
-  return `${date}T00:00:00.000Z`;
+  return hasTime(date) ? date : `${date}T00:00:00.000Z`;
 }
 
 export function buildQueryUrl(query: QuakeQuery): string {

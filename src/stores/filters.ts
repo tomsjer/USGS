@@ -7,6 +7,7 @@ import {
   MAX_MAGNITUDE,
   MIN_MAGNITUDE,
 } from "@/lib/constants";
+import { endOfDayUtc, startOfDayUtc } from "@/lib/usgs";
 import { toUtcDateInput } from "@/lib/utils";
 
 /**
@@ -14,19 +15,31 @@ import { toUtcDateInput } from "@/lib/utils";
  * against this on submit with zodResolver; only a valid form triggers a fetch.
  * Rules (AGENTS.md "Filter validation"): start ≤ end, magnitude numeric & in
  * range, no future dates.
+ *
+ * A field is normally a `YYYY-MM-DD` day, but a preset may set a full ISO instant
+ * (e.g. "Past hour" → exact `now−1h … now`). Ordering/future checks therefore
+ * compare resolved instants, not strings: a bare date resolves to start- or
+ * end-of-day in UTC; an ISO value is used as-is.
  */
 
-/** `YYYY-MM-DD` today, in UTC, for the no-future-dates bound. */
-function todayUtc(): string {
-  return toUtcDateInput(new Date());
+const dateField = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z)?$/, "Use a YYYY-MM-DD date");
+
+/** Earliest instant a value can mean (bare date → its UTC midnight; ISO → exact). */
+function startInstant(value: string): number {
+  return Date.parse(startOfDayUtc(value));
 }
 
-const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date");
+/** Latest instant a value can mean (bare date → its UTC end-of-day; ISO → exact). */
+function endInstant(value: string): number {
+  return Date.parse(endOfDayUtc(value));
+}
 
 export const filterSchema = z
   .object({
-    starttime: dateString,
-    endtime: dateString,
+    starttime: dateField,
+    endtime: dateField,
     minmagnitude: z
       .number({ message: "Magnitude must be a number" })
       .min(MIN_MAGNITUDE, `Magnitude ≥ ${MIN_MAGNITUDE}`)
@@ -36,15 +49,17 @@ export const filterSchema = z
       .min(MIN_MAGNITUDE, `Magnitude ≥ ${MIN_MAGNITUDE}`)
       .max(MAX_MAGNITUDE, `Magnitude ≤ ${MAX_MAGNITUDE}`),
   })
-  .refine((f) => f.starttime <= f.endtime, {
+  .refine((f) => startInstant(f.starttime) <= endInstant(f.endtime), {
     path: ["endtime"],
     message: "End date must be on or after the start date",
   })
-  .refine((f) => f.endtime <= todayUtc(), {
+  // Judge "no future" at the earliest instant, so a bare end date of *today* (its
+  // midnight) is allowed while an ISO instant is held to the exact clock time.
+  .refine((f) => startInstant(f.endtime) <= Date.now(), {
     path: ["endtime"],
     message: "End date can't be in the future",
   })
-  .refine((f) => f.starttime <= todayUtc(), {
+  .refine((f) => startInstant(f.starttime) <= Date.now(), {
     path: ["starttime"],
     message: "Start date can't be in the future",
   })
