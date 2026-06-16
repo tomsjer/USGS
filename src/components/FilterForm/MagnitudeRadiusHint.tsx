@@ -1,9 +1,9 @@
 import { useMemo } from "react";
-import { formatMagnitude, magnitudeCircleRadius, roundMagnitude } from "@/lib/utils";
+import { magnitudeCircleRadius, roundMagnitude } from "@/lib/utils";
 
-const SAMPLE_COUNT = 5;
-const GAP = 10; // px between adjacent circle edges
-const PAD = 4; // px padding around the row
+const SAMPLE_COUNT = 10;
+const GAP = 20; // px between adjacent circle edges
+const PAD = 0; // px padding around the row
 
 interface MagnitudeRadiusHintProps {
   min: number;
@@ -36,14 +36,8 @@ export function MagnitudeRadiusHint({ min, max }: MagnitudeRadiusHintProps) {
 
   return (
     <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
-      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span>Map circle radius</span>
-        <span className="font-medium text-foreground">
-          {formatRadius(minRadius)} – {formatRadius(maxRadius)}
-        </span>
-      </div>
       <div
-        className="mt-3 rounded-sm bg-background/50 px-3 py-2"
+        className="mt-3 rounded-sm bg-background/50 px-3"
         role="img"
         aria-label={`Selected magnitudes render as map circles from ${formatRadius(minRadius)} to ${formatRadius(maxRadius)}`}
       >
@@ -76,9 +70,11 @@ export function MagnitudeRadiusHint({ min, max }: MagnitudeRadiusHintProps) {
           ))}
         </svg>
       </div>
-      <div className="mt-1 flex justify-between text-xs text-muted-foreground">
-        <span>M{formatMagnitude(min)}</span>
-        <span>M{formatMagnitude(max)}</span>
+      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+        <span>Map circle radius</span>
+        <span className="font-medium text-foreground">
+          {formatRadius(minRadius)} – {formatRadius(maxRadius)}
+        </span>
       </div>
     </div>
   );
