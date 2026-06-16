@@ -59,9 +59,7 @@ export function App() {
           {!isMobile && <SidebarTrigger />}
           <Activity className="size-5 text-primary md:hidden" />
           <span className="text-base font-semibold md:hidden">Quake Map</span>
-          <span className="text-sm text-muted-foreground ">
-            USGS Earthquakes
-          </span>
+          <span className="text-sm text-muted-foreground ">USGS Earthquakes</span>
         </header>
         <main className="relative flex-1">
           <QuakeMap />

@@ -9,7 +9,6 @@ import { formatMagnitude, roundMagnitude, toUtcDateInput } from "@/lib/utils";
 import { type FilterValues, filterSchema, runQuery, useFiltersStore } from "@/stores";
 import { DatePickerInput } from "./DatePickerInput";
 import { Field } from "./Field";
-import { MagnitudeRadiusHint } from "./MagnitudeRadiusHint";
 
 /**
  * Date presets mirror the legend's age buckets (`AGE_COLORS`) so the two stay in
@@ -101,7 +100,8 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <Tabs defaultValue="presets">
+      <label>Dates</label>
+      <Tabs defaultValue="presets" >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="presets">Presets</TabsTrigger>
           <TabsTrigger value="custom">Custom</TabsTrigger>
@@ -166,7 +166,6 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
           <span>{formatMagnitude(MIN_MAGNITUDE)}</span>
           <span>{formatMagnitude(MAX_MAGNITUDE)}</span>
         </div>
-        <MagnitudeRadiusHint min={minmagnitude} max={maxmagnitude} />
       </Field>
       <Button type="submit">Apply filters</Button>
     </form>

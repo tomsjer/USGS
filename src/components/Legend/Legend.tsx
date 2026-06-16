@@ -14,7 +14,7 @@ import { AGE_COLORS } from "@/lib/constants";
  */
 export function Legend() {
   const isMobile = useIsMobile();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const open = !isMobile || expanded;
 
   if (!open) {
