@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AGE_COLORS, MAX_MAGNITUDE, MIN_MAGNITUDE, MS_PER_HOUR } from "@/lib/constants";
 import { formatMagnitude, roundMagnitude, toUtcDateInput } from "@/lib/utils";
 import { type FilterValues, filterSchema, runQuery, useFiltersStore } from "@/stores";
@@ -100,38 +101,46 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <div className="grid grid-cols-2 gap-2">
-        {DATE_PRESETS.map((preset) => (
-          <Button
-            key={preset.label}
-            type="button"
-            variant="outline"
-            size="xs"
-            aria-pressed={activeDatePreset === preset.label}
-            data-active={activeDatePreset === preset.label || undefined}
-            className="data-[active]:border-primary data-[active]:bg-primary data-[active]:text-primary-foreground data-[active]:shadow-xs"
-            onClick={() => applyDatePreset(preset)}
-          >
-            {preset.label}
-          </Button>
-        ))}
-      </div>
-      <Field id={`${ids}-start`} label="Start date" error={errors.starttime?.message}>
-        <DatePickerInput
-          id={`${ids}-start`}
-          value={starttime}
-          invalid={Boolean(errors.starttime)}
-          onChange={(value) => setDateValue("starttime", value)}
-        />
-      </Field>
-      <Field id={`${ids}-end`} label="End date" error={errors.endtime?.message}>
-        <DatePickerInput
-          id={`${ids}-end`}
-          value={endtime}
-          invalid={Boolean(errors.endtime)}
-          onChange={(value) => setDateValue("endtime", value)}
-        />
-      </Field>
+      <Tabs defaultValue="presets">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="presets">Presets</TabsTrigger>
+          <TabsTrigger value="custom">Custom</TabsTrigger>
+        </TabsList>
+        <TabsContent value="presets" className="grid grid-cols-2 gap-2">
+          {DATE_PRESETS.map((preset) => (
+            <Button
+              key={preset.label}
+              type="button"
+              variant="outline"
+              size="xs"
+              aria-pressed={activeDatePreset === preset.label}
+              data-active={activeDatePreset === preset.label || undefined}
+              className="data-[active]:border-primary data-[active]:bg-primary data-[active]:text-primary-foreground data-[active]:shadow-xs"
+              onClick={() => applyDatePreset(preset)}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </TabsContent>
+        <TabsContent value="custom" className="flex flex-col gap-4">
+          <Field id={`${ids}-start`} label="Start date" error={errors.starttime?.message}>
+            <DatePickerInput
+              id={`${ids}-start`}
+              value={starttime}
+              invalid={Boolean(errors.starttime)}
+              onChange={(value) => setDateValue("starttime", value)}
+            />
+          </Field>
+          <Field id={`${ids}-end`} label="End date" error={errors.endtime?.message}>
+            <DatePickerInput
+              id={`${ids}-end`}
+              value={endtime}
+              invalid={Boolean(errors.endtime)}
+              onChange={(value) => setDateValue("endtime", value)}
+            />
+          </Field>
+        </TabsContent>
+      </Tabs>
       <Field id={`${ids}-mag`} label="Magnitude range" error={magnitudeError}>
         <div className="flex items-center justify-between gap-3 text-xs font-normal text-muted-foreground">
           <span>
