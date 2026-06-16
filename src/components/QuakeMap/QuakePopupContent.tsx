@@ -17,9 +17,9 @@ export function QuakePopupContent({ info, onClose }: { info: PopupInfo; onClose:
     info.time === null
       ? "Unknown time"
       : new Date(info.time).toLocaleString(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-      });
+          dateStyle: "medium",
+          timeStyle: "short",
+        });
 
   return (
     <div className="w-56">
