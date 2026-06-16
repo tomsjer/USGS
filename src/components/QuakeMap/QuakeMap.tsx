@@ -1,4 +1,4 @@
-import type { FilterSpecification, MapGeoJSONFeature, Map as MapInstance } from "maplibre-gl";
+import type { CircleLayerSpecification, MapGeoJSONFeature, Map as MapInstance } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Layer,
@@ -12,28 +12,51 @@ import {
 import {
   AGE_PROP,
   BASEMAP_STYLE_URL,
+  DEFAULT_MAG,
   FIT_OPTIONS,
   INITIAL_VIEW_STATE,
   MS_PER_HOUR,
   POPUP_HEADROOM,
+  QUAKE_HIGHLIGHT_SOURCE_ID,
+  QUAKE_HOVER_LAYER_ID,
   QUAKE_LAYER_ID,
+  QUAKE_SELECTED_LAYER_ID,
+  QUAKE_SELECTED_RIPPLE_DELAY_LAYER_ID,
+  QUAKE_SELECTED_RIPPLE_LAYER_ID,
   QUAKE_SOURCE_ID,
 } from "@/lib/constants";
 import type { Earthquake } from "@/lib/usgs";
-import { quakeCircleLayer, quakeHoverLayer, quakeSelectedLayer } from "@/map/config";
+import { magnitudeCircleRadius } from "@/lib/utils";
+import { quakeCircleLayer } from "@/map/config";
 import { useQuakesStore, useStatusStore, useViewportStore } from "@/stores";
-import { type QuakeHighlight, QuakeHighlightMarker } from "./QuakeHighlightMarker";
 import { type PopupInfo, QuakePopupContent } from "./QuakePopupContent";
 
 /** Only the quake circles are interactive (hover cursor + click → popup). */
 const INTERACTIVE_LAYERS = [QUAKE_LAYER_ID];
-const EMPTY_FEATURE_FILTER: FilterSpecification = ["==", ["id"], ""];
 const MIN_CLICK_ZOOM = 5.5;
 const MAX_CLICK_ZOOM = 8;
 const CLICK_ZOOM_DELTA = 1.5;
 
-function idFilter(id: string | number | null | undefined): FilterSpecification {
-  return id === null || id === undefined ? EMPTY_FEATURE_FILTER : ["==", ["id"], id];
+type HighlightVariant = "hover" | "selected";
+
+interface QuakeHighlight {
+  id: string | number | null;
+  longitude: number;
+  latitude: number;
+  mag: number | null;
+}
+
+interface HighlightFeature {
+  type: "Feature";
+  id: string;
+  properties: {
+    variant: HighlightVariant;
+    radius: number;
+  };
+  geometry: {
+    type: "Point";
+    coordinates: [number, number];
+  };
 }
 
 function featureId(feature: MapGeoJSONFeature | undefined): string | number | null {
@@ -57,6 +80,22 @@ function isSameHighlight(a: QuakeHighlight | null, b: QuakeHighlight | null): bo
   if (!a || !b) return false;
   if (a.id !== null && b.id !== null) return a.id === b.id;
   return a.longitude === b.longitude && a.latitude === b.latitude;
+}
+
+function highlightFeature(highlight: QuakeHighlight, variant: HighlightVariant): HighlightFeature {
+  const featureIdPart = highlight.id ?? `${highlight.longitude},${highlight.latitude}`;
+  return {
+    type: "Feature",
+    id: `${variant}-${featureIdPart}`,
+    properties: {
+      variant,
+      radius: magnitudeCircleRadius(highlight.mag ?? DEFAULT_MAG),
+    },
+    geometry: {
+      type: "Point",
+      coordinates: [highlight.longitude, highlight.latitude],
+    },
+  };
 }
 
 function disableRotation(map: MapInstance): void {
@@ -120,8 +159,8 @@ export function QuakeMap() {
   const mapRef = useRef<MapRef>(null);
   const [selected, setSelected] = useState<PopupInfo | null>(null);
   const [hovered, setHovered] = useState<QuakeHighlight | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | number | null>(null);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [pulse, setPulse] = useState(0);
 
   // Inject `ageHours` (relative to load time) so the circle-color step expression
   // can read it — MapLibre paint can't compute "now" itself. Recomputed per result set.
@@ -135,13 +174,85 @@ export function QuakeMap() {
       })),
     };
   }, [items]);
-  const hoverFilter = useMemo(() => idFilter(hoveredId), [hoveredId]);
-  const selectedFilter = useMemo(() => idFilter(selected?.id), [selected?.id]);
+  const highlightData = useMemo(() => {
+    const features: HighlightFeature[] = [];
+    if (hovered && !isSameHighlight(hovered, selected)) {
+      features.push(highlightFeature(hovered, "hover"));
+    }
+    if (selected) {
+      features.push(highlightFeature(selected, "selected"));
+    }
+    return { type: "FeatureCollection" as const, features };
+  }, [hovered, selected]);
+
+  const hoverPaint = useMemo<CircleLayerSpecification["paint"]>(
+    () => ({
+      "circle-radius": ["+", ["get", "radius"], 4 + Math.sin(pulse * Math.PI * 2) * 1.5],
+      "circle-color": "rgba(255,255,255,0.12)",
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#111827",
+      "circle-stroke-opacity": 0.68,
+    }),
+    [pulse],
+  );
+
+  const selectedPaint = useMemo<CircleLayerSpecification["paint"]>(
+    () => ({
+      "circle-radius": ["+", ["get", "radius"], 4],
+      "circle-color": "rgba(220,38,38,0.16)",
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#dc2626",
+      "circle-stroke-opacity": 0.95,
+    }),
+    [],
+  );
+
+  const selectedRipplePaint = useMemo<CircleLayerSpecification["paint"]>(() => {
+    const radius = 8 + pulse * 17;
+    const opacity = Math.max(0, 0.68 * (1 - pulse));
+    return {
+      "circle-radius": ["+", ["get", "radius"], radius],
+      "circle-color": "rgba(220,38,38,0)",
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#dc2626",
+      "circle-stroke-opacity": opacity,
+    };
+  }, [pulse]);
+
+  const selectedRippleDelayPaint = useMemo<CircleLayerSpecification["paint"]>(() => {
+    const delayedPulse = (pulse + 0.48) % 1;
+    const radius = 8 + delayedPulse * 17;
+    const opacity = Math.max(0, 0.52 * (1 - delayedPulse));
+    return {
+      "circle-radius": ["+", ["get", "radius"], radius],
+      "circle-color": "rgba(220,38,38,0)",
+      "circle-stroke-width": 2,
+      "circle-stroke-color": "#f87171",
+      "circle-stroke-opacity": opacity,
+    };
+  }, [pulse]);
 
   // A new query is in flight → drop any open popup (applying a filter dismisses it).
   useEffect(() => {
     if (dataKind === "fetching") setSelected(null);
   }, [dataKind]);
+
+  useEffect(() => {
+    if (!hovered && !selected) {
+      setPulse(0);
+      return;
+    }
+
+    let frame = 0;
+    const startedAt = performance.now();
+    const tick = (now: number) => {
+      setPulse(((now - startedAt) % 1800) / 1800);
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [hovered, selected]);
 
   // New results landed → frame them. fitBounds shows the whole result set; runs once
   // the map is ready (so the initial query also gets framed on first load).
@@ -211,9 +322,7 @@ export function QuakeMap() {
 
   const onMouseMove = useCallback((e: MapLayerMouseEvent) => {
     const highlight = highlightInfo(e.features?.[0]);
-    const id = highlight?.id ?? null;
     setHovered(highlight);
-    setHoveredId(id);
     setCursor(highlight ? "pointer" : undefined);
   }, []);
 
@@ -243,21 +352,44 @@ export function QuakeMap() {
       onMouseMove={onMouseMove}
       onMouseLeave={() => {
         setHovered(null);
-        setHoveredId(null);
         setCursor(undefined);
       }}
       style={{ width: "100%", height: "100%" }}
     >
       <Source id={QUAKE_SOURCE_ID} type="geojson" data={data}>
         <Layer id={QUAKE_LAYER_ID} type="circle" source={QUAKE_SOURCE_ID} paint={paint} />
-        <Layer {...quakeHoverLayer} filter={hoverFilter} />
-        <Layer {...quakeSelectedLayer} filter={selectedFilter} />
+      </Source>
+      <Source id={QUAKE_HIGHLIGHT_SOURCE_ID} type="geojson" data={highlightData}>
+        <Layer
+          id={QUAKE_HOVER_LAYER_ID}
+          type="circle"
+          source={QUAKE_HIGHLIGHT_SOURCE_ID}
+          filter={["==", ["get", "variant"], "hover"]}
+          paint={hoverPaint}
+        />
+        <Layer
+          id={QUAKE_SELECTED_RIPPLE_LAYER_ID}
+          type="circle"
+          source={QUAKE_HIGHLIGHT_SOURCE_ID}
+          filter={["==", ["get", "variant"], "selected"]}
+          paint={selectedRipplePaint}
+        />
+        <Layer
+          id={QUAKE_SELECTED_RIPPLE_DELAY_LAYER_ID}
+          type="circle"
+          source={QUAKE_HIGHLIGHT_SOURCE_ID}
+          filter={["==", ["get", "variant"], "selected"]}
+          paint={selectedRippleDelayPaint}
+        />
+        <Layer
+          id={QUAKE_SELECTED_LAYER_ID}
+          type="circle"
+          source={QUAKE_HIGHLIGHT_SOURCE_ID}
+          filter={["==", ["get", "variant"], "selected"]}
+          paint={selectedPaint}
+        />
       </Source>
       <ScaleControl position="bottom-left" maxWidth={96} unit="metric" />
-      {hovered && !isSameHighlight(hovered, selected) ? (
-        <QuakeHighlightMarker highlight={hovered} variant="hover" />
-      ) : null}
-      {selected ? <QuakeHighlightMarker highlight={selected} variant="selected" /> : null}
 
       {selected ? (
         <Popup

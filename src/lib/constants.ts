@@ -16,9 +16,12 @@ export const BASEMAP_STYLE_URL =
 
 // Map layer identity + rendering defaults
 export const QUAKE_SOURCE_ID = "quakes";
+export const QUAKE_HIGHLIGHT_SOURCE_ID = "quake-highlights";
 export const QUAKE_LAYER_ID = "quake-circles";
 export const QUAKE_HOVER_LAYER_ID = "quake-hover";
 export const QUAKE_SELECTED_LAYER_ID = "quake-selected";
+export const QUAKE_SELECTED_RIPPLE_LAYER_ID = "quake-selected-ripple";
+export const QUAKE_SELECTED_RIPPLE_DELAY_LAYER_ID = "quake-selected-ripple-delay";
 /** Fallback for the nullable `mag` field so paint expressions never see null. */
 export const DEFAULT_MAG = 0;
 export const MAGNITUDE_RADIUS_STOPS = [
