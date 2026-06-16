@@ -1,5 +1,6 @@
 import { toast } from "sonner";
-import { fetchEarthquakes, toErrorMessage } from "@/lib/usgs";
+import { toErrorMessage } from "@/lib/usgs";
+import { queryEarthquakes } from "@/lib/usgs/workerClient";
 import type { FilterValues } from "./filters";
 import { useFiltersStore } from "./filters";
 import { useQuakesStore } from "./quakes";
@@ -11,9 +12,12 @@ import { useStatusStore } from "./status";
  * framework-free usgs layer, and writes the typed result into the quakes slice.
  *
  * It is deliberately NOT a component and NOT part of `lib/usgs` (which stays
- * framework-free). Each call owns an AbortController; a newer call aborts the
- * in-flight one so a stale response can never overwrite newer results
- * (AGENTS.md: "abort superseded fetches", "latest response wins").
+ * framework-free). The actual fetch + Zod parse runs off the main thread in a
+ * Web Worker (`@/lib/usgs/workerClient`); this controller just drives the status
+ * union and stores the typed result. Each call owns an AbortController; a newer
+ * call aborts the in-flight one (the worker cancels its fetch) so a stale
+ * response can never overwrite newer results (AGENTS.md: "abort superseded
+ * fetches", "latest response wins").
  *
  * The terminal `rendering → ready` hop is intentionally left to the map: it fires
  * on MapLibre's `idle` event after the source updates (see QuakeMap).
@@ -31,10 +35,9 @@ export async function runQuery(filters: FilterValues): Promise<void> {
   useStatusStore.getState().setData({ kind: "fetching" });
 
   try {
-    const collection = await fetchEarthquakes(filters, controller.signal);
+    const features = await queryEarthquakes(filters, controller.signal);
     if (controller.signal.aborted) return; // superseded — drop the result
 
-    const features = collection.features;
     useQuakesStore.getState().setItems(features);
     useStatusStore
       .getState()

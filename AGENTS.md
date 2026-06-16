@@ -33,8 +33,15 @@ Loading / empty / error states are always visible.
 - **`src/lib/usgs` is framework-free.** Pure functions, returns typed results, imports NOTHING from
   React, the store, or MapLibre. This seam is what keeps the bonus features (Web Worker / IndexedDB /
   Service Worker) cheap to add later — never bury fetch inside a component hook.
+- **Fetch + Zod parse run in a Web Worker** to keep the main thread free. `src/lib/usgs/worker.ts`
+  reuses the pure layer (`fetchEarthquakes`, `toErrorMessage`) verbatim — no duplicated logic;
+  `workerClient.ts` is the main-thread handle exposing `queryEarthquakes(query, signal)` (same
+  abort-aware contract as `fetchEarthquakes`). Errors are mapped to a user message worker-side
+  (error classes don't survive `postMessage`). Import `workerClient` directly, not via the barrel,
+  so unrelated imports don't instantiate a worker.
 - Map and sidebar are dumb renderers of store state. No fetching inside components.
-- Each fetch carries an `AbortController`; submitting a new filter aborts the in-flight one. Latest response wins.
+- Each fetch carries an `AbortController`; submitting a new filter aborts the in-flight one (the
+  worker cancels its fetch). Latest response wins.
 - Data source is the USGS query API:
   `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=&endtime=&minmagnitude=`
   The base URL is env-overridable (`VITE_USGS_API_URL`) with a default in `src/lib/constants.ts`;
