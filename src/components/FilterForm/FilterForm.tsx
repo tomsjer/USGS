@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AGE_COLORS, MAX_MAGNITUDE, MIN_MAGNITUDE, MS_PER_HOUR } from "@/lib/constants";
-import { formatMagnitude, roundMagnitude, toUtcDateInput } from "@/lib/utils";
+import { formatMagnitude, roundMagnitude } from "@/lib/utils";
 import { type FilterValues, filterSchema, runQuery, useFiltersStore } from "@/stores";
 import { DatePickerInput } from "./DatePickerInput";
 import { Field } from "./Field";
@@ -81,15 +81,12 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
     const end = new Date();
     const start = new Date(end.getTime() - preset.maxHours * MS_PER_HOUR);
 
-    // Sub-day windows (e.g. "Past hour") query the exact instants so the API
-    // filters by hour, not the whole day; day+ windows stay day-granular.
-    const subDay = preset.maxHours < 24;
-    setDateValue("starttime", subDay ? start.toISOString() : toUtcDateInput(start), {
-      preservePreset: true,
-    });
-    setDateValue("endtime", subDay ? end.toISOString() : toUtcDateInput(end), {
-      preservePreset: true,
-    });
+    // Presets mean "the last N hours", so query the exact instants. Day-rounding
+    // would widen the window past the bucket's `maxHours` (e.g. "Past day" could
+    // span ~48h), pulling in older events that then render in the next, cooler
+    // color bucket — making the map disagree with the preset and legend.
+    setDateValue("starttime", start.toISOString(), { preservePreset: true });
+    setDateValue("endtime", end.toISOString(), { preservePreset: true });
     setActiveDatePreset(preset.label);
   };
 

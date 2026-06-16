@@ -80,6 +80,12 @@ Loading / empty / error states are always visible.
 - USGS `endtime=YYYY-MM-DD` is midnight UTC — push to end-of-day UTC or events that day are dropped.
   Normalize form dates to UTC ISO.
 - `mag` can be null; `place` can be null/empty. Schema accordingly.
+- Date presets mean "the last N hours" and MUST query exact ISO instants, not day-rounded dates.
+  Day-rounding widens the window past the bucket's `maxHours` (e.g. "Past day" → ~48h), so events
+  older than the bucket boundary come back and render in the next, cooler color bucket — the map then
+  disagrees with the chosen preset and the legend. Circle color is computed from each event's *exact*
+  age (`ageHours`) against the `AGE_COLORS` boundaries, so the queried window must match those bounds.
+  (Custom-date inputs stay day-granular — that's fine, since there's no preset/legend to contradict.)
 
 ## Conventions
 - Unknown shape → model it with Zod, never `any`.
