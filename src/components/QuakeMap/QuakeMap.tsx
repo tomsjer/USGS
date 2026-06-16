@@ -64,14 +64,30 @@ function featureId(feature: MapGeoJSONFeature | undefined): string | number | nu
   return typeof id === "string" || typeof id === "number" ? id : null;
 }
 
+/**
+ * Exact `[lng, lat]` of a clicked/hovered feature. Prefers the precise coords we
+ * stash in properties over `geometry.coordinates`, which MapLibre quantizes to
+ * the tile grid (the quantized value drifts visibly from the true point on zoom).
+ */
+function preciseCoords(feature: MapGeoJSONFeature): [number, number] | null {
+  if (feature.geometry.type !== "Point") return null;
+  const props = feature.properties ?? {};
+  const [fallbackLng, fallbackLat] = feature.geometry.coordinates as [number, number];
+  return [
+    typeof props.lng === "number" ? props.lng : fallbackLng,
+    typeof props.lat === "number" ? props.lat : fallbackLat,
+  ];
+}
+
 function highlightInfo(feature: MapGeoJSONFeature | undefined): QuakeHighlight | null {
-  if (feature?.geometry.type !== "Point") return null;
-  const [longitude, latitude] = feature.geometry.coordinates as [number, number];
+  if (!feature) return null;
+  const coords = preciseCoords(feature);
+  if (!coords) return null;
   const props = feature.properties ?? {};
   return {
     id: featureId(feature),
-    longitude,
-    latitude,
+    longitude: coords[0],
+    latitude: coords[1],
     mag: typeof props.mag === "number" ? props.mag : null,
   };
 }
@@ -170,7 +186,15 @@ export function QuakeMap() {
       type: "FeatureCollection" as const,
       features: items.map((f) => ({
         ...f,
-        properties: { ...f.properties, [AGE_PROP]: (now - f.properties.time) / MS_PER_HOUR },
+        properties: {
+          ...f.properties,
+          [AGE_PROP]: (now - f.properties.time) / MS_PER_HOUR,
+          // Carry precise coords in properties: a rendered feature's geometry is
+          // quantized to the tile grid (drifts from the true point as you zoom),
+          // but properties pass through exact — used to place the highlight/popup.
+          lng: f.geometry.coordinates[0],
+          lat: f.geometry.coordinates[1],
+        },
       })),
     };
   }, [items]);
@@ -293,11 +317,12 @@ export function QuakeMap() {
   // Click a circle → select + center it; click empty map → close the popup.
   const onClick = useCallback((e: MapLayerMouseEvent) => {
     const feature = e.features?.[0];
-    if (feature?.geometry.type !== "Point") {
+    const coords = feature ? preciseCoords(feature) : null;
+    if (!feature || !coords) {
       setSelected(null);
       return;
     }
-    const [longitude, latitude] = feature.geometry.coordinates as [number, number];
+    const [longitude, latitude] = coords;
     const props = feature.properties ?? {};
     setSelected({
       id: featureId(feature),
