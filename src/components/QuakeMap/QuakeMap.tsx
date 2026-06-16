@@ -240,7 +240,6 @@ export function QuakeMap() {
       }}
       style={{ width: "100%", height: "100%" }}
     >
-
       <Source id={QUAKE_HIGHLIGHT_SOURCE_ID} type="geojson" data={highlightData}>
         <Layer
           id={QUAKE_HOVER_LAYER_ID}
