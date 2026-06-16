@@ -58,8 +58,9 @@ export function App() {
         <header className="flex h-12 items-center gap-2 border-b px-4">
           {!isMobile && <SidebarTrigger />}
           <Activity className="size-5 text-primary md:hidden" />
-          <span className="text-sm text-muted-foreground">
-            USGS earthquakes — filter and explore
+          <span className="text-base font-semibold md:hidden">Quake Map</span>
+          <span className="text-sm text-muted-foreground ">
+            USGS Earthquakes
           </span>
         </header>
         <main className="relative flex-1">
