@@ -1,4 +1,3 @@
-import type { CircleLayerSpecification, MapGeoJSONFeature, Map as MapInstance } from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Layer,
@@ -12,9 +11,11 @@ import {
 import {
   AGE_PROP,
   BASEMAP_STYLE_URL,
-  DEFAULT_MAG,
+  CLICK_ZOOM_DELTA,
   FIT_OPTIONS,
   INITIAL_VIEW_STATE,
+  MAX_CLICK_ZOOM,
+  MIN_CLICK_ZOOM,
   MS_PER_HOUR,
   POPUP_HEADROOM,
   QUAKE_HIGHLIGHT_SOURCE_ID,
@@ -25,137 +26,35 @@ import {
   QUAKE_SELECTED_RIPPLE_LAYER_ID,
   QUAKE_SOURCE_ID,
 } from "@/lib/constants";
-import type { Earthquake } from "@/lib/usgs";
-import { magnitudeCircleRadius } from "@/lib/utils";
 import { quakeCircleLayer } from "@/map/config";
+import {
+  hoverPaint,
+  selectedPaint,
+  selectedRippleDelayPaint,
+  selectedRipplePaint,
+} from "@/map/highlightLayers";
 import { useQuakesStore, useStatusStore, useViewportStore } from "@/stores";
 import { type PopupInfo, QuakePopupContent } from "./QuakePopupContent";
+import {
+  boundsOf,
+  countWithinBounds,
+  disableRotation,
+  featureId,
+  type HighlightFeature,
+  highlightFeature,
+  highlightInfo,
+  isSameHighlight,
+  preciseCoords,
+  type QuakeHighlight,
+} from "./quakeMapUtils";
 
 /** Only the quake circles are interactive (hover cursor + click → popup). */
 const INTERACTIVE_LAYERS = [QUAKE_LAYER_ID];
-const MIN_CLICK_ZOOM = 5.5;
-const MAX_CLICK_ZOOM = 8;
-const CLICK_ZOOM_DELTA = 1.5;
-
-type HighlightVariant = "hover" | "selected";
-
-interface QuakeHighlight {
-  id: string | number | null;
-  longitude: number;
-  latitude: number;
-  mag: number | null;
-}
-
-interface HighlightFeature {
-  type: "Feature";
-  id: string;
-  properties: {
-    variant: HighlightVariant;
-    radius: number;
-  };
-  geometry: {
-    type: "Point";
-    coordinates: [number, number];
-  };
-}
-
-function featureId(feature: MapGeoJSONFeature | undefined): string | number | null {
-  const id = feature?.id;
-  return typeof id === "string" || typeof id === "number" ? id : null;
-}
-
-/**
- * Exact `[lng, lat]` of a clicked/hovered feature. Prefers the precise coords we
- * stash in properties over `geometry.coordinates`, which MapLibre quantizes to
- * the tile grid (the quantized value drifts visibly from the true point on zoom).
- */
-function preciseCoords(feature: MapGeoJSONFeature): [number, number] | null {
-  if (feature.geometry.type !== "Point") return null;
-  const props = feature.properties ?? {};
-  const [fallbackLng, fallbackLat] = feature.geometry.coordinates as [number, number];
-  return [
-    typeof props.lng === "number" ? props.lng : fallbackLng,
-    typeof props.lat === "number" ? props.lat : fallbackLat,
-  ];
-}
-
-function highlightInfo(feature: MapGeoJSONFeature | undefined): QuakeHighlight | null {
-  if (!feature) return null;
-  const coords = preciseCoords(feature);
-  if (!coords) return null;
-  const props = feature.properties ?? {};
-  return {
-    id: featureId(feature),
-    longitude: coords[0],
-    latitude: coords[1],
-    mag: typeof props.mag === "number" ? props.mag : null,
-  };
-}
-
-function isSameHighlight(a: QuakeHighlight | null, b: QuakeHighlight | null): boolean {
-  if (!a || !b) return false;
-  if (a.id !== null && b.id !== null) return a.id === b.id;
-  return a.longitude === b.longitude && a.latitude === b.latitude;
-}
-
-function highlightFeature(highlight: QuakeHighlight, variant: HighlightVariant): HighlightFeature {
-  const featureIdPart = highlight.id ?? `${highlight.longitude},${highlight.latitude}`;
-  return {
-    type: "Feature",
-    id: `${variant}-${featureIdPart}`,
-    properties: {
-      variant,
-      radius: magnitudeCircleRadius(highlight.mag ?? DEFAULT_MAG),
-    },
-    geometry: {
-      type: "Point",
-      coordinates: [highlight.longitude, highlight.latitude],
-    },
-  };
-}
-
-function disableRotation(map: MapInstance): void {
-  map.dragRotate.disable();
-  map.touchPitch.disable();
-  map.touchZoomRotate.disableRotation();
-  map.keyboard.disableRotation();
-}
-
-/** How many features fall within the current map bounds. */
-function countWithinBounds(features: Earthquake[], map: MapRef): number {
-  const bounds = map.getBounds();
-  let count = 0;
-  for (const f of features) {
-    const [lng, lat] = f.geometry.coordinates;
-    if (bounds.contains([lng, lat])) count += 1;
-  }
-  return count;
-}
-
-/** Bounding box `[[w, s], [e, n]]` of the features, or null if empty. */
-function boundsOf(features: Earthquake[]): [[number, number], [number, number]] | null {
-  let west = Infinity;
-  let south = Infinity;
-  let east = -Infinity;
-  let north = -Infinity;
-  for (const f of features) {
-    const [lng, lat] = f.geometry.coordinates;
-    if (lng < west) west = lng;
-    if (lng > east) east = lng;
-    if (lat < south) south = lat;
-    if (lat > north) north = lat;
-  }
-  return Number.isFinite(west)
-    ? [
-        [west, south],
-        [east, north],
-      ]
-    : null;
-}
 
 /**
  * Dumb map renderer. Reads quake features from the store and feeds them to a
- * single GeoJSON source + data-driven circle layer (no clustering).
+ * single GeoJSON source + data-driven circle layer (no clustering). Highlight
+ * paint specs live in `map/highlightLayers`; pure helpers in `quakeMapUtils`.
  *
  * Interaction: clicking a circle centers the map on it and opens a popup (place,
  * magnitude, local time, close icon); clicking elsewhere on the map closes it.
@@ -198,6 +97,7 @@ export function QuakeMap() {
       })),
     };
   }, [items]);
+
   const highlightData = useMemo(() => {
     const features: HighlightFeature[] = [];
     if (hovered && !isSameHighlight(hovered, selected)) {
@@ -209,58 +109,17 @@ export function QuakeMap() {
     return { type: "FeatureCollection" as const, features };
   }, [hovered, selected]);
 
-  const hoverPaint = useMemo<CircleLayerSpecification["paint"]>(
-    () => ({
-      "circle-radius": ["+", ["get", "radius"], 4 + Math.sin(pulse * Math.PI * 2) * 1.5],
-      "circle-color": "rgba(255,255,255,0.12)",
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#111827",
-      "circle-stroke-opacity": 0.68,
-    }),
-    [pulse],
-  );
-
-  const selectedPaint = useMemo<CircleLayerSpecification["paint"]>(
-    () => ({
-      "circle-radius": ["+", ["get", "radius"], 4],
-      "circle-color": "rgba(220,38,38,0.16)",
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#dc2626",
-      "circle-stroke-opacity": 0.95,
-    }),
-    [],
-  );
-
-  const selectedRipplePaint = useMemo<CircleLayerSpecification["paint"]>(() => {
-    const radius = 8 + pulse * 17;
-    const opacity = Math.max(0, 0.68 * (1 - pulse));
-    return {
-      "circle-radius": ["+", ["get", "radius"], radius],
-      "circle-color": "rgba(220,38,38,0)",
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#dc2626",
-      "circle-stroke-opacity": opacity,
-    };
-  }, [pulse]);
-
-  const selectedRippleDelayPaint = useMemo<CircleLayerSpecification["paint"]>(() => {
-    const delayedPulse = (pulse + 0.48) % 1;
-    const radius = 8 + delayedPulse * 17;
-    const opacity = Math.max(0, 0.52 * (1 - delayedPulse));
-    return {
-      "circle-radius": ["+", ["get", "radius"], radius],
-      "circle-color": "rgba(220,38,38,0)",
-      "circle-stroke-width": 2,
-      "circle-stroke-color": "#f87171",
-      "circle-stroke-opacity": opacity,
-    };
-  }, [pulse]);
+  const hoverLayerPaint = useMemo(() => hoverPaint(pulse), [pulse]);
+  const selectedLayerPaint = useMemo(() => selectedPaint(), []);
+  const ripplePaint = useMemo(() => selectedRipplePaint(pulse), [pulse]);
+  const rippleDelayPaint = useMemo(() => selectedRippleDelayPaint(pulse), [pulse]);
 
   // A new query is in flight → drop any open popup (applying a filter dismisses it).
   useEffect(() => {
     if (dataKind === "fetching") setSelected(null);
   }, [dataKind]);
 
+  // Animate the hover/selection feedback (breathing ring + expanding ripples).
   useEffect(() => {
     if (!hovered && !selected) {
       setPulse(0);
@@ -390,28 +249,28 @@ export function QuakeMap() {
           type="circle"
           source={QUAKE_HIGHLIGHT_SOURCE_ID}
           filter={["==", ["get", "variant"], "hover"]}
-          paint={hoverPaint}
+          paint={hoverLayerPaint}
         />
         <Layer
           id={QUAKE_SELECTED_RIPPLE_LAYER_ID}
           type="circle"
           source={QUAKE_HIGHLIGHT_SOURCE_ID}
           filter={["==", ["get", "variant"], "selected"]}
-          paint={selectedRipplePaint}
+          paint={ripplePaint}
         />
         <Layer
           id={QUAKE_SELECTED_RIPPLE_DELAY_LAYER_ID}
           type="circle"
           source={QUAKE_HIGHLIGHT_SOURCE_ID}
           filter={["==", ["get", "variant"], "selected"]}
-          paint={selectedRippleDelayPaint}
+          paint={rippleDelayPaint}
         />
         <Layer
           id={QUAKE_SELECTED_LAYER_ID}
           type="circle"
           source={QUAKE_HIGHLIGHT_SOURCE_ID}
           filter={["==", ["get", "variant"], "selected"]}
-          paint={selectedPaint}
+          paint={selectedLayerPaint}
         />
       </Source>
       <ScaleControl position="bottom-left" maxWidth={96} unit="metric" />

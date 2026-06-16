@@ -55,6 +55,10 @@ export const INITIAL_VIEW_STATE = { longitude: 0, latitude: 20, zoom: 1.4 } as c
 export const POPUP_HEADROOM = 90;
 /** How a result set is framed when a new query lands (MapLibre `fitBounds` options). */
 export const FIT_OPTIONS = { padding: 48, maxZoom: 8, duration: 800 } as const;
+/** Clicking a quake zooms in by this many levels, clamped to [min, max], to separate overlaps. */
+export const CLICK_ZOOM_DELTA = 1.5;
+export const MIN_CLICK_ZOOM = 5.5;
+export const MAX_CLICK_ZOOM = 8;
 
 // Filter bounds + defaults
 export const MIN_MAGNITUDE = -1;
