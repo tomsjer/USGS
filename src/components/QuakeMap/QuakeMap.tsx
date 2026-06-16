@@ -240,9 +240,7 @@ export function QuakeMap() {
       }}
       style={{ width: "100%", height: "100%" }}
     >
-      <Source id={QUAKE_SOURCE_ID} type="geojson" data={data}>
-        <Layer id={QUAKE_LAYER_ID} type="circle" source={QUAKE_SOURCE_ID} paint={paint} />
-      </Source>
+
       <Source id={QUAKE_HIGHLIGHT_SOURCE_ID} type="geojson" data={highlightData}>
         <Layer
           id={QUAKE_HOVER_LAYER_ID}
@@ -272,6 +270,9 @@ export function QuakeMap() {
           filter={["==", ["get", "variant"], "selected"]}
           paint={selectedLayerPaint}
         />
+      </Source>
+      <Source id={QUAKE_SOURCE_ID} type="geojson" data={data}>
+        <Layer id={QUAKE_LAYER_ID} type="circle" source={QUAKE_SOURCE_ID} paint={paint} />
       </Source>
       <ScaleControl position="bottom-left" maxWidth={96} unit="metric" />
 
