@@ -33,7 +33,7 @@ import {
   selectedRippleDelayPaint,
   selectedRipplePaint,
 } from "@/map/highlightLayers";
-import { useQuakesStore, useStatusStore, useViewportStore } from "@/stores";
+import { useQuakesStore, useStatusStore, useUiStore, useViewportStore } from "@/stores";
 import { type PopupInfo, QuakePopupContent } from "./QuakePopupContent";
 import {
   boundsOf,
@@ -183,6 +183,8 @@ export function QuakeMap() {
     }
     const [longitude, latitude] = coords;
     const props = feature.properties ?? {};
+    // Collapse the legend before the popup opens so the two don't overlap.
+    useUiStore.getState().setLegendExpanded(false);
     setSelected({
       id: featureId(feature),
       longitude,

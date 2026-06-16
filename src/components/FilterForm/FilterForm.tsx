@@ -17,6 +17,9 @@ import { Field } from "./Field";
  */
 const DATE_PRESETS = AGE_COLORS.filter((bucket) => Number.isFinite(bucket.maxHours));
 
+/** Section dividers that split the form into "Dates" and "Magnitude range". */
+const SECTION_HEADING = "border-b border-border pb-2 text-sm font-medium";
+
 type DatePreset = (typeof DATE_PRESETS)[number];
 
 interface FilterFormProps {
@@ -99,49 +102,63 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
   const magnitudeError = errors.minmagnitude?.message ?? errors.maxmagnitude?.message;
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <label>Dates</label>
-      <Tabs defaultValue="presets" >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="presets">Presets</TabsTrigger>
-          <TabsTrigger value="custom">Custom</TabsTrigger>
-        </TabsList>
-        <TabsContent value="presets" className="grid grid-cols-2 gap-2">
-          {DATE_PRESETS.map((preset) => (
-            <Button
-              key={preset.label}
-              type="button"
-              variant="outline"
-              size="xs"
-              aria-pressed={activeDatePreset === preset.label}
-              data-active={activeDatePreset === preset.label || undefined}
-              className="data-[active]:border-primary data-[active]:bg-primary data-[active]:text-primary-foreground data-[active]:shadow-xs"
-              onClick={() => applyDatePreset(preset)}
-            >
-              {preset.label}
-            </Button>
-          ))}
-        </TabsContent>
-        <TabsContent value="custom" className="flex flex-col gap-4">
-          <Field id={`${ids}-start`} label="Start date" error={errors.starttime?.message}>
-            <DatePickerInput
-              id={`${ids}-start`}
-              value={starttime}
-              invalid={Boolean(errors.starttime)}
-              onChange={(value) => setDateValue("starttime", value)}
-            />
-          </Field>
-          <Field id={`${ids}-end`} label="End date" error={errors.endtime?.message}>
-            <DatePickerInput
-              id={`${ids}-end`}
-              value={endtime}
-              invalid={Boolean(errors.endtime)}
-              onChange={(value) => setDateValue("endtime", value)}
-            />
-          </Field>
-        </TabsContent>
-      </Tabs>
-      <Field id={`${ids}-mag`} label="Magnitude range" error={magnitudeError}>
+    <form onSubmit={onSubmit} className="flex flex-col gap-6" noValidate>
+      <section className="flex flex-col gap-3">
+        <h3 className={SECTION_HEADING}>Dates</h3>
+        <Tabs
+          defaultValue="presets"
+          onValueChange={(value) => {
+            // Switching away from the presets tab clears the highlighted preset.
+            if (value !== "presets") setActiveDatePreset(null);
+          }}
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="presets">Presets</TabsTrigger>
+            <TabsTrigger value="custom">Custom</TabsTrigger>
+          </TabsList>
+          <TabsContent value="presets" className="grid min-h-36 grid-cols-2 content-start gap-2">
+            {DATE_PRESETS.map((preset) => (
+              <Button
+                key={preset.label}
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-pressed={activeDatePreset === preset.label}
+                data-active={activeDatePreset === preset.label || undefined}
+                className="data-[active]:border-primary data-[active]:bg-primary data-[active]:text-primary-foreground data-[active]:shadow-xs"
+                onClick={() => applyDatePreset(preset)}
+              >
+                <span
+                  className="size-3 shrink-0 rounded-full border border-white/60"
+                  style={{ backgroundColor: preset.color }}
+                  aria-hidden
+                />
+                {preset.label}
+              </Button>
+            ))}
+          </TabsContent>
+          <TabsContent value="custom" className="flex min-h-36 flex-col gap-4">
+            <Field id={`${ids}-start`} label="Start date" error={errors.starttime?.message}>
+              <DatePickerInput
+                id={`${ids}-start`}
+                value={starttime}
+                invalid={Boolean(errors.starttime)}
+                onChange={(value) => setDateValue("starttime", value)}
+              />
+            </Field>
+            <Field id={`${ids}-end`} label="End date" error={errors.endtime?.message}>
+              <DatePickerInput
+                id={`${ids}-end`}
+                value={endtime}
+                invalid={Boolean(errors.endtime)}
+                onChange={(value) => setDateValue("endtime", value)}
+              />
+            </Field>
+          </TabsContent>
+        </Tabs>
+      </section>
+      <section className="flex flex-col gap-3">
+        <h3 className={SECTION_HEADING}>Magnitude range</h3>
         <div className="flex items-center justify-between gap-3 text-xs font-normal text-muted-foreground">
           <span>
             Min{" "}
@@ -154,6 +171,7 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
         </div>
         <Slider
           id={`${ids}-mag`}
+          aria-label="Magnitude range"
           value={[minmagnitude, maxmagnitude]}
           min={MIN_MAGNITUDE}
           max={MAX_MAGNITUDE}
@@ -166,7 +184,12 @@ export function FilterForm({ onSubmitted }: FilterFormProps) {
           <span>{formatMagnitude(MIN_MAGNITUDE)}</span>
           <span>{formatMagnitude(MAX_MAGNITUDE)}</span>
         </div>
-      </Field>
+        {magnitudeError ? (
+          <span role="alert" className="text-xs font-normal text-destructive">
+            {magnitudeError}
+          </span>
+        ) : null}
+      </section>
       <Button type="submit">Apply filters</Button>
     </form>
   );

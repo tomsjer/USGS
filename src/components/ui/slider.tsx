@@ -24,6 +24,9 @@ function Slider({
   return (
     <SliderPrimitive.Root
       data-slot="slider"
+      // Opt the slider out of vaul's swipe-to-dismiss so dragging a thumb on
+      // mobile doesn't get captured as a drawer drag gesture.
+      data-vaul-no-drag=""
       defaultValue={defaultValue}
       value={value}
       min={min}
@@ -51,7 +54,9 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={index}
-          className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          // `before` expands the touch target to ~44px without enlarging the
+          // visible handle, so thumbs are easy to grab on touch screens.
+          className="relative block size-5 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] before:absolute before:-inset-3 before:content-[''] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>

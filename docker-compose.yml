@@ -2,13 +2,6 @@ services:
   web:
     build:
       context: .
-      target: dev          # the hot-reloading Vite stage from the Dockerfile
+      target: serve        # the nginx stage that serves the built SPA
     ports:
-      - "5173:5173"
-    volumes:
-      - .:/app             # bind-mount source for HMR
-      - /app/node_modules  # anonymous volume: keep container deps, don't shadow with host
-    environment:
-      - CHOKIDAR_USEPOLLING=true   # reliable file-watching on macOS/Windows mounts
-      - CI=true                    # let pnpm reconcile the anonymous node_modules volume non-interactively
-    command: sh -c "pnpm install --frozen-lockfile && pnpm dev --host 0.0.0.0"
+      - "8080:80"

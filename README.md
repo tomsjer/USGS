@@ -19,29 +19,39 @@ magnitude-scaled markers, click popups, and first-class loading / empty / error 
 
 No API key required.
 
-## Prerequisites
+## Run it (production — no dev tooling)
 
-- Docker + Docker Compose
-- Node.js 20+ (only for tooling run outside the container)
-- pnpm via Corepack: `corepack enable`
-
-## Getting started
+Just want to see the app? You only need Docker. No Node, no pnpm, no install step.
 
 ```bash
 git clone <repo> && cd quake-map
-corepack enable
-pnpm install
-docker compose up        # dev server (Vite) with hot reload
+docker compose up        # builds the SPA and serves it via nginx
 ```
 
-Dev app runs at http://localhost:5173.
+Open http://localhost:8080. `docker compose up` builds the production bundle and serves the
+static assets with nginx (the final image contains no Node).
 
-## Docker
+## Development
 
-One multi-stage `Dockerfile` with named targets:
+For working on the code with hot reload, run the Vite dev server locally. This is the only path
+that needs Node + pnpm.
 
-- `dev` — runs `pnpm dev --host`; used by `docker compose` with source bind-mounted for HMR.
-- `build` → `serve` — Vite builds static assets, nginx serves them. The final image contains no Node.
+```bash
+corepack enable          # provides pnpm
+pnpm install
+pnpm dev                 # Vite dev server with HMR
+```
+
+Open http://localhost:5173.
+
+**Prerequisites:** Node.js 20+ and pnpm (via Corepack). Docker is *not* required for this path.
+
+### Docker targets
+
+The multi-stage `Dockerfile` has named targets if you want to build images directly:
+
+- `build` → `serve` — Vite builds static assets, nginx serves them (used by `docker compose`).
+- `dev` — runs `pnpm dev --host` inside a container, if you prefer containerized development.
 
 ```bash
 docker build --target serve -t quake-map .

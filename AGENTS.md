@@ -95,8 +95,9 @@ Loading / empty / error states are always visible.
   in `constants.ts`; document each in `.env.example`. `.env` is gitignored.
 
 ## Commands
-- `corepack enable` then `pnpm install` — first-time setup
-- `docker compose up` — dev (runs `pnpm dev` in the container with source mounted)
+- `corepack enable` then `pnpm install` — first-time setup for local development
+- `pnpm dev` — local Vite dev server with HMR (the development path)
+- `docker compose up` — production: builds the SPA and serves it via nginx on :8080 (no local tooling needed)
 - `pnpm check:ci` — Biome lint + format check
 - `pnpm typecheck` — tsc --noEmit
 - Both must pass before any commit.

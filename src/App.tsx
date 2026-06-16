@@ -55,11 +55,13 @@ export function App() {
         </Sidebar>
       )}
       <SidebarInset className="relative">
-        <header className="flex h-12 items-center gap-2 border-b px-4">
-          {!isMobile && <SidebarTrigger />}
-          <Activity className="size-5 text-primary md:hidden" />
-          <span className="text-base font-semibold md:hidden">Quake Map</span>
-          <span className="text-sm text-muted-foreground ">USGS Earthquakes</span>
+        <header className="flex h-12 items-center gap-2 border-slate-800 border-b bg-slate-900 px-4 text-slate-50">
+          {!isMobile && (
+            <SidebarTrigger className="text-slate-50 hover:bg-slate-800 hover:text-slate-50" />
+          )}
+          <Activity className="size-5 text-slate-50 md:hidden" />
+          <span className="font-semibold text-base md:hidden">Quake Map</span>
+          <span className="text-slate-400 text-sm">USGS Earthquakes</span>
         </header>
         <main className="relative flex-1">
           <QuakeMap />

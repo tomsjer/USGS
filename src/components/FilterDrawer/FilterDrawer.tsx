@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -32,8 +31,7 @@ export function FilterDrawer() {
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Filters</DrawerTitle>
-          <DrawerDescription>Filter earthquakes by date and magnitude.</DrawerDescription>
+          <DrawerTitle>Filter earthquakes by date and magnitude.</DrawerTitle>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-6">
           <FilterForm onSubmitted={() => setOpen(false)} />

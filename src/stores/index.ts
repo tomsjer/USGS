@@ -11,4 +11,5 @@ export {
   type MapStatus,
   useStatusStore,
 } from "./status";
+export { useUiStore } from "./ui";
 export { useViewportStore } from "./viewport";
